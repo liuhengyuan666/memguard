@@ -1,5 +1,8 @@
 # Memguard — Agent Memory & Guardrails
 
+> **Version**: 1.0.2  
+> **Last Updated**: 2026-05-09
+
 一套面向 AI Agent 的**结构化记忆与行为约束规范**，用于增强 Agent 的上下文保持能力、减少幻觉、固化关键决策，提升多轮协作效率。
 
 兼容 [OpenCode](https://opencode.ai) / [OhMyOpenAgent](https://github.com/code-yeongyu/oh-my-openagent) / Claude Code 等支持 Agent Skills 的平台。

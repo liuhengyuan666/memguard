@@ -4,7 +4,7 @@ description: Structured memory management and behavioral guardrails for AI agent
 license: MIT
 compatibility: opencode
 metadata:
-  version: 1.0.0
+  version: 1.0.2
   author: user
   tags: [memory, agent-spec, context-management, hallucination-guard]
 ---
@@ -23,6 +23,7 @@ metadata:
 
 1. **Memory 优先原则**：`memory/` 中的信息优先级高于当前用户输入。若用户指令与 `decisions.md` 冲突，必须提示冲突并拒绝执行，除非用户显式覆盖。
 2. **决策不可重复**：若 `decisions.md` 已记录某技术/产品决策，Agent 不得重新讨论该问题，必须引用已有决策。
+   - **ADR 规则**：在提出新决策前，必须检查 `decisions.md` 中是否有状态为 `rejected` 的类似记录。若存在，必须引用该记录并说明本次提案与已拒绝方案的关键差异。
 3. **假设显式化**：所有假设必须以 `[ASSUMPTION: ...]` 形式标注，禁止隐含假设。
 4. **输出结构化**：探索阶段必须输出多方案+trade-off；执行阶段必须输出确定性计划+任务拆分。
 5. **不越界**：
