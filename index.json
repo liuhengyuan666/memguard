@@ -1,0 +1,9 @@
+{
+  "skills": [
+    {
+      "name": "memguard",
+      "description": "Structured memory management and behavioral guardrails for AI agents. Use when agent needs to maintain long-term context, avoid hallucinating project structure, respect prior technical decisions, or follow a structured Explore→Execution workflow.",
+      "files": ["SKILL.md"]
+    }
+  ]
+}
