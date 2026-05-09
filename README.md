@@ -24,7 +24,7 @@
 
 ```bash
 # 在你的项目根目录执行
-git clone https://github.com/<your-username>/memguard.git /tmp/memguard-spec
+git clone https://github.com/liuhengyuan666/memguard.git /tmp/memguard-spec
 mkdir -p .opencode/skills
 cp -r /tmp/memguard-spec/memguard .opencode/skills/
 rm -rf /tmp/memguard-spec
@@ -41,13 +41,13 @@ skill({ name: "memguard" })
 ```bash
 # macOS / Linux
 mkdir -p ~/.config/opencode/skills
-git clone https://github.com/<your-username>/memguard.git /tmp/memguard-spec
+git clone https://github.com/liuhengyuan666/memguard.git /tmp/memguard-spec
 cp -r /tmp/memguard-spec/memguard ~/.config/opencode/skills/
 rm -rf /tmp/memguard-spec
 
 # Windows (PowerShell)
 New-Item -ItemType Directory -Path "$env:USERPROFILE\.config\opencode\skills" -Force
-git clone https://github.com/<your-username>/memguard.git "$env:TEMP\memguard-spec"
+git clone https://github.com/liuhengyuan666/memguard.git "$env:TEMP\memguard-spec"
 Copy-Item -Recurse "$env:TEMP\memguard-spec\memguard" "$env:USERPROFILE\.config\opencode\skills\"
 Remove-Item -Recurse "$env:TEMP\memguard-spec"
 ```
@@ -60,7 +60,7 @@ Remove-Item -Recurse "$env:TEMP\memguard-spec"
 {
   "skills": {
     "urls": [
-      "https://raw.githubusercontent.com/<your-username>/memguard/main/"
+      "https://raw.githubusercontent.com/liuhengyuan666/memguard/main/"
     ]
   }
 }
