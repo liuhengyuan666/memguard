@@ -158,6 +158,42 @@ OpenCode 的 skill 系统支持：
 
 ---
 
+## 与 OhMyOpenAgent 的兼容性
+
+Memguard 与 [OhMyOpenAgent](https://github.com/code-yeongyu/oh-my-openagent) **高度互补**，两者负责完全不同的层面：
+
+| 能力 | Memguard | OhMyOpenAgent |
+|------|---------|---------------|
+| **记忆系统** | ✅ 7 类 memory 文件（product/tech/structure/decisions/context/glossary/history） | ❌ 无持久化记忆（仅 .sisyphus/drafts/ 草稿） |
+| **决策沉淀** | ✅ `decisions.md` 禁止重复讨论 | ❌ 无决策注册机制 |
+| **工作流模式** | ✅ 探索 ↔ 执行 双模式切换 | ❌ 无显式模式切换 |
+| **幻觉防御** | ✅ 6 层校验（Context 锚定、Decision 校验、Structure 校验等） | ⚠️ 间接（Metis + Momus 审查） |
+| **编码规范** | ⚠️ 弱（仅通用约束） | ✅ 强（Hard Blocks + Anti-Patterns + Hooks） |
+| **任务完成** | ⚠️ 弱（自检清单） | ✅ 强（Todo Enforcer + Ralph Loop） |
+| **代码质量** | ⚠️ 弱（Memory Patch 协议） | ✅ 强（ai-slop-remover + review-work + Comment Checker） |
+
+### 为什么不会冲突
+
+OhMyOpenAgent 的 guardrails 是**运行时行为约束**（编码时不能做什么），而 Memguard 是**项目级状态治理**（记住什么、决定什么、当前在哪）。两者正交：
+
+- **Memguard** 回答："这个项目现在是什么阶段？之前决定了什么？当前目标是什么？"
+- **OhMyOpenAgent** 回答："这段代码写得对不对？有没有过度抽象？任务完成了吗？"
+
+### 关于 andrej-karpathy-skills
+
+如果你同时使用 OhMyOpenAgent，**不建议额外引入 [andrej-karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills)**。原因：
+
+| karpathy 原则 | OhMyOpenAgent 已有对应 | 冗余度 |
+|--------------|----------------------|--------|
+| Simplicity First（不过度抽象） | Metis 检测 premature abstraction + ai-slop-remover skill | 🔴 高 |
+| Surgical Changes（不改无关代码） | Comment Checker + Anti-Patterns | 🟡 中 |
+| Goal-Driven Execution（测试先行） | Todo Enforcer + Ralph Loop + review-work skill | 🔴 高 |
+| Think Before Coding（多问少猜） | Momus 计划审查 + Metis gap 分析 | 🟡 中 |
+
+> 重复加载会增加上下文消耗，且可能导致 Agent 行为过度保守。
+
+---
+
 ## 自定义与扩展
 
 你可以 fork 本仓库并修改：
