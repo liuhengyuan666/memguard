@@ -1,367 +1,494 @@
 ---
 name: memguard
-description: Structured memory management and behavioral guardrails for AI agents. Use when agent needs to maintain long-term context, avoid hallucinating project structure, respect prior technical decisions, or follow a structured Explore→Execution workflow. Activates automatically when memory/ directory exists or when agent initializes project memory.
+description: Structured memory management and behavioral runtime contract for AI agents. Provides long-term context continuity, decision anchoring, hallucination reduction, and controlled Explore → Execution workflows.
 license: MIT
 compatibility: opencode
 metadata:
-  version: 1.0.2
-  author: user
-  tags: [memory, agent-spec, context-management, hallucination-guard]
+  version: 2.0.0
+  author: Lhy
+  tags:
+    [
+      memory,
+      adr,
+      context-management,
+      hallucination-guard,
+      workflow,
+      agent-runtime,
+    ]
 ---
 
-# Agent Memory & Operating Spec
+# MemGuard — Agent Memory & Runtime Spec
 
-> **Scope**: 所有 AI Agent 会话（新项目初始化 / 既有项目接入）  
-> **Trigger**: `auto` — 当项目根目录存在 `memory/` 目录时自动激活；否则由 Agent 在首次会话时初始化。  
-> **Goal**: 通过结构化 Memory 与强行为约束，增强 Agent 的上下文保持能力、减少幻觉、固化关键决策、提升多轮协作效率。
+> Trigger:
+> Activate automatically when `memory/` exists in project root.
+> If absent, initialize during first project interaction.
 
-------
+> Goal:
+> Maintain stable long-term context, reduce hallucinations,
+> preserve architectural decisions, and enforce structured
+> agent operating behavior across sessions.
 
-## 1. Agent 行为总约束（不可违反）
+---
 
-在任何模式下，Agent 必须遵守以下铁律：
+# 1. Core Runtime Principles
 
-1. **Memory 优先原则**：`memory/` 中的信息优先级高于当前用户输入。若用户指令与 `decisions.md` 冲突，必须提示冲突并拒绝执行，除非用户显式覆盖。
-2. **决策不可重复**：若 `decisions.md` 已记录某技术/产品决策，Agent 不得重新讨论该问题，必须引用已有决策。
-   - **ADR 规则**：在提出新决策前，必须检查 `decisions.md` 中是否有状态为 `rejected` 的类似记录。若存在，必须引用该记录并说明本次提案与已拒绝方案的关键差异。
-3. **假设显式化**：所有假设必须以 `[ASSUMPTION: ...]` 形式标注，禁止隐含假设。
-4. **输出结构化**：探索阶段必须输出多方案+trade-off；执行阶段必须输出确定性计划+任务拆分。
-5. **不越界**：
-   - 不做项目管理（排期、人力）
-   - 不做 CI/CD 编排（仅输出方案）
-   - 不做代码托管（不替代 Git/PR）
-   - 不做实时协作（基于文件）
-   - 不做外部系统集成（Jira/Linear 等）
+## 1.1 Memory As Context Anchor
 
-------
+Memory provides persistent operational context.
 
-## 2. 双模式工作流（Explore ↔ Execution）
+Agent MUST:
 
-### 2.1 模式定义
+- reference prior decisions before proposing alternatives
+- preserve architectural continuity
+- avoid contradicting established project structure
 
-| 模式 | 目标 | 输出特征 |
-|------|------|----------|
-| **探索模式（Explore）** | 需求模糊时发散、假设、多方案分析 | 问题建模 + 3-5 个候选方案 + trade-off + 假设列表 |
-| **执行模式（Execution）** | 需求明确时工程落地 | PRD / 任务拆分 / 代码实现 / 测试验证 |
+Explicit user instructions MAY override memory.
 
-### 2.2 模式切换条件（必须满足全部）
+When conflict exists:
 
-- [ ] 方案收敛至 1-2 个可行路径
-- [ ] 关键技术不确定性已验证（PoC/调研完成）
-- [ ] MVP 范围已明确
+1. surface the conflict
+2. request confirmation if ambiguity exists
+3. record override into memory if confirmed
 
-> Agent 必须在切换模式时，在 `context.md` 中记录切换事件，并更新当前阶段。
+---
 
-### 2.3 探索模式标准输出模板
+## 1.2 Decision Continuity
 
-当处于探索模式时，Agent 必须按以下结构输出：
+Before proposing new technical or product decisions:
 
-```markdown
-## 问题重构（Problem Framing）
-...
+- inspect `memory/decisions.md`
+- check for active/rejected/superseded entries
+- avoid repeating previously rejected approaches
 
-## 候选方案（Solution Candidates）
-### 方案 A: ...
-- 优点：
-- 缺点：
-- 适用场景：
+If proposing a previously rejected idea,
+Agent MUST explain the meaningful difference.
 
-### 方案 B: ...
-...
+---
 
-## 关键决策点（Decision Points）
-- [ ] DP-1: ...（影响：...）
+## 1.3 Explicit Assumptions
 
-## 假设列表（Hypothesis List）
-- [ASSUMPTION-1]: ...（验证方式：...）
+All unverified assumptions MUST use:
 
-## 验证计划（Validation Plan）
-1. ...
-2. ...
+```text
+[ASSUMPTION: ...]
 ```
 
-### 2.4 执行模式标准输出模板
+Implicit assumptions are forbidden.
 
-当处于执行模式时，Agent 必须按以下结构输出：
+---
 
-```markdown
-## 当前目标
-...
+## 1.4 Dual-Mode Operation
 
-## 任务拆分
-- [ ] Task-1: ...（依赖：...）
-- [ ] Task-2: ...
+Agent operates in TWO modes only:
 
-## 关键约束
-- 不可违反的 decisions: ...
-- 技术限制：...
+| Mode | Purpose |
+|---|---|
+| Explore | divergence, uncertainty reduction, solution analysis |
+| Execution | deterministic implementation and delivery |
 
-## 执行计划
-1. ...
-2. ...
-```
+Agent MUST adapt output structure to current mode.
 
-------
+---
 
-## 3. Memory 目录结构（项目级）
+## 1.5 Operational Boundaries
 
-Agent 必须在项目根目录维护以下结构：
+Agent MUST NOT autonomously:
+
+- perform project management
+- manage CI/CD pipelines
+- manage git hosting workflows
+- perform external service integration
+- invent infrastructure not present in project
+- rewrite architecture without justification
+
+Agent MAY provide plans/recommendations for these areas.
+
+---
+
+# 2. Runtime Modes
+
+## 2.1 Explore Mode
+
+Use when:
+
+- requirements are ambiguous
+- architecture is unresolved
+- trade-offs remain unclear
+- major uncertainty exists
+
+Output MUST include:
+
+1. problem framing
+2. 2-5 candidate approaches
+3. trade-offs
+4. assumptions
+5. validation strategy
+6. decision points
+
+---
+
+## 2.2 Execution Mode
+
+Use when:
+
+- implementation path is sufficiently clear
+- architecture is mostly stable
+- requirements are actionable
+
+Output MUST include:
+
+1. current objective
+2. task breakdown
+3. dependencies
+4. architectural constraints
+5. execution plan
+
+---
+
+## 2.3 Mode Transition Rules
+
+Transition Explore → Execution ONLY when:
+
+- solution converges to 1-2 viable paths
+- major uncertainty is validated
+- MVP scope is sufficiently defined
+
+Mode transitions SHOULD update `memory/context.md`.
+
+---
+
+# 3. Memory Structure
 
 ```text
 memory/
-├── product.md        # 长期：业务记忆（产品定位、用户角色、核心场景）
-├── tech.md           # 长期：技术记忆（技术栈、架构、设计原则）
-├── structure.md      # 长期：结构记忆（目录结构、模块划分、依赖关系）
-├── glossary.md       # 长期：术语表（统一业务/技术术语）
-├── decisions.md      # 核心：决策记忆（已确定的技术/产品决策）
-├── context.md        # 高频：当前上下文（阶段、目标、约束、风险）
-└── history/
-    └── YYYY-MM-DD-事件标题.md   # 过程记录（阶段总结、重要变更）
+├── context.md
+├── decisions.md
+├── product.md
+├── tech.md
+├── structure.md
+├── glossary.md
+├── history/
+└── archive/
 ```
 
-> **初始化命令**（新项目/既有项目首次接入时执行）：
-> ```bash
-> mkdir -p memory/history
-> touch memory/{product,tech,structure,glossary,decisions,context}.md
-> ```
+---
 
-------
+## File Responsibilities
 
-## 4. Memory 读取策略（Read Pipeline）
+| File | Purpose | Strategy |
+|---|---|---|
+| context.md | current operational state | overwrite |
+| decisions.md | ADR-style decisions | append-only |
+| product.md | stable business knowledge | overwrite |
+| tech.md | stable technical architecture | overwrite |
+| structure.md | current project structure | overwrite |
+| glossary.md | terminology normalization | append |
+| history/ | milestone summaries only | append |
+| archive/ | compressed historical memory | overwrite |
 
-### 4.1 强制预加载（Pre-Run Hook）
+---
 
-**每次 Agent 执行前，必须按顺序加载以下文件：**
+# 4. Memory Loading Strategy
 
-| 模式 | 必加载文件 | 用途 |
-|------|-----------|------|
-| 全局 | `memory/context.md` | 了解当前阶段与目标 |
-| 全局 | `memory/decisions.md` | 避免违反已有决策 |
-| 探索模式 | `memory/product.md` + `memory/glossary.md` | 理解问题空间与业务语境 |
-| 执行模式 | `memory/structure.md` + `memory/tech.md` | 确保代码符合现有架构 |
+Agent MUST load memory selectively.
 
-### 4.2 读取格式（嵌入 Prompt）
+## Minimum Required
 
-Agent 必须在内部推理时显式引用 Memory 内容：
+Always load:
 
-```
-[MEMORY LOADED]
-- 当前阶段: <from context.md>
-- 关键决策: <from decisions.md>
-- 当前约束: <from context.md>
-- 技术栈: <from tech.md>
-...
-```
+- `context.md`
+- active sections of `decisions.md`
 
-> 若 `memory/` 目录不存在，Agent 必须先执行初始化，再进入工作流。
+---
 
-------
+## Conditional Loading
 
-## 5. Memory 写入策略（Write Pipeline）
+Load ONLY when relevant:
 
-### 5.1 写入触发条件（核心）
+| File | Load When |
+|---|---|
+| product.md | business/domain reasoning |
+| tech.md | implementation/architecture |
+| structure.md | file/module operations |
+| glossary.md | terminology ambiguity |
+| history/ | historical reasoning |
+| archive/ | long-term context recovery |
 
-Agent 仅在以下情况触发 Memory 写入：
+---
 
-| 触发场景 | 写入目标 | 说明 |
-|---------|---------|------|
-| 技术/产品决策已确定 | `decisions.md` | 记录决策背景、备选、原因、影响 |
-| 阶段切换或目标变更 | `context.md` | 更新当前阶段、目标、约束 |
-| 重要代码结构变化 | `structure.md` | 目录/模块/依赖变更 |
-| 业务/技术知识沉淀 | `product.md` / `tech.md` / `glossary.md` | 长期知识更新 |
-| 阶段结束或重大变更 | `history/YYYY-MM-DD-标题.md` | 过程记录 |
+## Loading Priority
 
-### 5.2 禁止写入的情况
+Prefer:
 
-- ❌ 不完整或未验证的信息
-- ❌ 探索阶段的随意想法（未收敛前不得写入 decisions）
-- ❌ 直接覆盖 `decisions.md` 的历史记录（只能 append）
-- ❌ 直接修改 `history/` 中的已有文件
+1. active context
+2. active decisions
+3. current structure
+4. compressed summaries
+5. historical detail
 
-### 5.3 写入格式（Memory Patch 协议）
+---
 
-**Agent 不得直接修改文件。** 必须通过输出 `memory_write` JSON 块，由外部执行：
+# 5. Memory Write Policy
 
-````markdown
-```memory_write
-[
-  {
-    "target": "decisions.md",
-    "action": "append",
-    "content": "## [2026-05-09] 选择 React + Vite 作为前端方案\n\n- 背景：...\n- 备选方案：...\n- 决策：...\n- 原因：...\n- 影响：...\n- 状态：active\n"
-  },
-  {
-    "target": "context.md",
-    "action": "overwrite",
-    "content": "## 当前阶段\n- 阶段：执行模式\n- 当前目标：完成登录模块开发\n- 关键任务：...\n\n## 当前约束\n- 时间：...\n- 技术限制：...\n\n## 当前风险\n- ...\n"
-  }
-]
-```
-````
+Agent SHOULD minimize unnecessary memory writes.
 
-#### 关键规则
+Only stable, validated, reusable information
+belongs in memory.
 
-- `action`: 仅限 `append`（decisions, history, product, tech, glossary, structure）或 `overwrite`（仅 context.md）
-- `content`: 必须是完整、格式化的 Markdown
-- 写入前必须自检：`IF 信息未验证 → 不写；ELSE IF 长期稳定 → product/tech/glossary；ELSE IF 已决策 → decisions；ELSE IF 当前状态 → context；ELSE IF 过程记录 → history`
+---
 
-### 5.4 decisions.md 标准格式
+## 5.1 Write Triggers
+
+| Event | Target |
+|---|---|
+| confirmed decision | decisions.md |
+| phase/goal change | context.md |
+| major architecture change | tech.md |
+| major structure change | structure.md |
+| terminology stabilization | glossary.md |
+| milestone completion | history/ |
+
+---
+
+## 5.2 Forbidden Writes
+
+DO NOT write:
+
+- speculative ideas
+- temporary thoughts
+- unresolved exploration
+- duplicated information
+- transient debugging details
+- verbose execution logs
+
+---
+
+## 5.3 Write Rules
+
+| File | Allowed Action |
+|---|---|
+| decisions.md | append-only |
+| glossary.md | append |
+| context.md | overwrite |
+| tech.md | overwrite |
+| structure.md | overwrite |
+| archive/ | overwrite |
+| history/ | new milestone files only |
+
+---
+
+# 6. ADR Decision Format
+
+`memory/decisions.md`
 
 ```markdown
-## [YYYY-MM-DD] 决策标题
+## [YYYY-MM-DD] Decision Title
 
-- 背景：
-- 备选方案：
-- 决策：
-- 原因：
-- 影响：
-- 状态：active | superseded | deprecated
+Status: active | superseded | deprecated | rejected
+
+### Context
+...
+
+### Alternatives
+...
+
+### Decision
+...
+
+### Rationale
+...
+
+### Consequences
+...
 ```
 
-### 5.5 context.md 标准格式
+---
+
+# 7. Context Format
+
+`memory/context.md`
 
 ```markdown
-## 当前阶段
+# Current State
 
-- 阶段：探索模式 / 执行模式
-- 当前目标：
-- 关键任务：
+Mode:
+Current Goal:
+Current Phase:
 
-## 当前约束
+# Active Tasks
 
-- 时间：
-- 技术限制：
-- 不可违反的 decisions：
+- ...
 
-## 当前风险
+# Constraints
 
-- 风险-1：...（缓解措施：...）
+- ...
+
+# Risks
+
+- ...
 ```
 
-### 5.6 history/ 标准格式
+---
 
-文件名：`memory/history/YYYY-MM-DD-事件标题.md`
+# 8. Hallucination Guardrails
 
-```markdown
-# YYYY-MM-DD 事件标题
+Before major reasoning or implementation,
+Agent MUST verify against memory.
 
-## 变更内容
-...
+---
 
-## 原因
-...
+## 8.1 Structure Verification
 
-## 影响
-...
-```
+Before creating/modifying files:
 
-------
+- verify against `structure.md`
+- avoid inventing nonexistent modules
+- avoid assuming architecture
 
-## 6. Memory 更新频率参考
+---
 
-| 文件 | 更新频率 | 写入方式 |
-|------|---------|---------|
-| `product.md` | 极低 | append |
-| `tech.md` | 低 | append |
-| `structure.md` | 中 | append |
-| `glossary.md` | 低 | append |
-| `decisions.md` | 中 | append（带状态标记） |
-| `context.md` | 高 | overwrite |
-| `history/` | 中 | 新建文件 |
+## 8.2 Decision Verification
 
-------
+Before architecture suggestions:
 
-## 7. 幻觉防御机制（Hallucination Guardrails）
+- inspect relevant decisions
+- avoid contradicting active ADRs
 
-Agent 必须通过以下机制主动减少幻觉：
+---
 
-1. **Context 锚定**：每次回复前，先复述 `context.md` 中的当前阶段与目标，确保不偏离。
-2. **Decision 校验**：任何技术/架构建议必须先检查 `decisions.md`，若已存在相关决策，必须引用而非重新发明。
-3. **Structure 校验**：任何文件创建/修改必须先检查 `structure.md`，确保符合现有模块划分。
-4. **假设显式化**：所有未验证的假设必须以 `[ASSUMPTION: ...]` 标注，并附带验证计划。
-5. **Glossary 对齐**：涉及业务/技术术语时，优先使用 `glossary.md` 中的定义，避免语义漂移。
-6. **变更回写**：任何对代码结构、技术栈、业务逻辑的实质性变更，必须在执行后更新对应的 Memory 文件。
+## 8.3 Technology Verification
 
-------
+Before stack-specific implementation:
 
-## 8. 新老项目接入流程
+- verify against `tech.md`
+- avoid hallucinating dependencies/frameworks
 
-### 8.1 新项目（Greenfield）
+---
 
-1. Agent 检测到项目根目录无 `memory/` 目录
-2. 执行初始化：创建目录结构 + 空白模板文件
-3. 引导用户填写 `product.md` 和 `tech.md`（或 Agent 基于对话自动填充）
-4. 进入探索模式，开始需求澄清
+## 8.4 Assumption Visibility
 
-### 8.2 既有项目（Brownfield）
-
-1. Agent 检测到项目根目录无 `memory/` 目录，但存在代码文件
-2. 执行初始化：创建目录结构
-3. **自动扫描**：分析现有代码结构，生成初始 `structure.md`；扫描 package.json / 依赖文件，生成初始 `tech.md`
-4. 引导用户确认/补全 `product.md` 和 `glossary.md`
-5. 标记为「执行模式」或根据现状判断模式
-
-------
-
-## 9. 执行检查清单（Agent 自检用）
-
-每次会话结束前，Agent 必须自检：
-
-- [ ] 本次会话是否产生了新的技术/产品决策？→ 是否已写入 `decisions.md`？
-- [ ] 当前阶段或目标是否发生变化？→ 是否已更新 `context.md`？
-- [ ] 是否有重要代码结构变更？→ 是否已更新 `structure.md`？
-- [ ] 是否有新的业务/技术术语？→ 是否已更新 `glossary.md`？
-- [ ] 是否完成了阶段性工作？→ 是否已写入 `history/`？
-- [ ] 本次回复中是否有未验证假设？→ 是否已标注 `[ASSUMPTION]`？
-- [ ] 本次回复是否违反了已有的 `decisions.md`？
-
-------
-
-## 10. 集成到 OpenCode / OhMyOpenAgent
-
-### 10.1 作为 Skill 使用
-
-将本文件放入项目的 skill 加载路径（如 `.openagent/skills/` 或 `.opencode/skills/`），Agent 会在每次会话时自动读取并遵循上述约束。
-
-### 10.2 作为系统提示片段（System Prompt Injection）
-
-在 Agent 的系统提示中，插入以下指令：
-
-```
-[System Directive]
-You are operating under the Agent Memory & Operating Spec.
-
-MUST:
-1. Before every response, load memory/context.md and memory/decisions.md.
-2. Follow the dual-mode workflow: Explore → Execution.
-3. Use memory_write blocks for all memory updates. NEVER modify memory files directly.
-4. Explicitly mark all assumptions with [ASSUMPTION: ...].
-5. Self-check against the checklist at the end of each session.
-
-MUST NOT:
-1. Never violate decisions recorded in memory/decisions.md.
-2. Never write unverified information to memory.
-3. Never hallucinate project structure or tech stack — always verify against memory/ first.
-```
-
-------
-
-## 附录：完整工作流示例
+Unverified claims MUST use:
 
 ```text
-用户: "我想做一个电商后台管理系统"
-
-Agent:
-  1. 检查 memory/ → 不存在 → 初始化目录结构
-  2. 进入探索模式
-  3. 加载 memory/product.md（空）→ 引导用户明确需求
-  4. 输出问题重构 + 3个候选方案（技术栈选型）
-  5. 用户选择方案 A
-  6. Agent 输出 memory_write → 写入 decisions.md（选择方案A）
-  7. 更新 context.md → 阶段：执行模式，目标：搭建项目骨架
-  8. 进入执行模式
-  9. 加载 memory/decisions.md + memory/tech.md + memory/structure.md
-  10. 执行任务拆分 → 输出开发计划
-  11. 编码实现 → 更新 structure.md
-  12. 会话结束 → 自检 checklist → 写入 history/
+[ASSUMPTION: ...]
 ```
+
+---
+
+# 9. Memory Compression
+
+To prevent context collapse,
+memory MUST remain compact.
+
+When memory grows excessively:
+
+- summarize obsolete decisions
+- archive deprecated context
+- compress historical records
+- remove duplicated terminology
+- retain active operational knowledge
+
+Prefer:
+
+```text
+active state > historical detail
+```
+
+---
+
+# 10. Project Initialization
+
+## New Project
+
+If no codebase exists:
+
+1. initialize memory structure
+2. request product + technical context
+3. enter Explore mode
+
+---
+
+## Existing Project
+
+If codebase exists:
+
+1. initialize memory structure
+2. scan project structure
+3. infer technical stack
+4. generate initial `structure.md`
+5. generate initial `tech.md`
+6. request user confirmation
+7. determine runtime mode
+
+---
+
+# 11. Runtime Self-Check
+
+Before session completion,
+Agent SHOULD verify:
+
+- were new decisions made?
+- did goals change?
+- did architecture change?
+- did terminology stabilize?
+- should memory be compressed?
+- are assumptions marked?
+- does implementation violate ADRs?
+
+---
+
+# 12. Recommended Runtime Behavior
+
+Preferred execution order:
+
+```text
+1. Load minimum memory
+2. Detect mode
+3. Expand relevant memory
+4. Reason
+5. Execute
+6. Update memory selectively
+7. Compress if necessary
+```
+
+---
+
+# 13. Integration
+
+Place this file in:
+
+```text
+.opencode/skills/
+```
+
+or equivalent OpenAgent skill directory.
+
+Agent SHOULD automatically load and apply
+this runtime contract during sessions.
+
+---
+
+# 14. Design Philosophy
+
+MemGuard prioritizes:
+
+- continuity over statelessness
+- decisions over conversation history
+- active context over historical detail
+- structure over improvisation
+- controlled autonomy over unrestricted generation
+
+The system is designed to reduce:
+
+- hallucinated architecture
+- repeated decision cycles
+- context drift
+- memory bloat
+- implementation inconsistency
+
+while preserving:
+
+- adaptability
+- user override capability
+- iterative architecture evolution
+- long-term project coherence
