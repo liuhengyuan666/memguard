@@ -1,338 +1,324 @@
-# 面向 AI Agent 的工具说明书（Agent Operating Spec）
+# 面向 AI Agent 的行为运行时协议（Agent Operating Spec）
 
+> **版本**: v2.0.0（2026-05-21 更新，对齐 SKILL.md v2.0.0）
+>
 > 定位：本文档用于定义 AI Agent 在软件开发过程中的职责边界、协作模式与记忆机制。
-> 当前版本为实验性设计，支持探索式共创与工程化执行双模式。
+> 当前版本已从「规范说明书」进化为「可执行行为协议（Behavioral Runtime Contract）」。
 
-------
+---
 
 # 0. 工作模式说明（核心机制）
 
 本系统支持两种工作模式：
 
-| 模式                           | 说明                                           |
-| ------------------------------ | ---------------------------------------------- |
-| **探索模式（Explore Mode）**   | 用于需求不明确阶段，强调发散、假设与多方案分析 |
-| **执行模式（Execution Mode）** | 用于需求明确阶段，强调确定性输出与工程落地     |
+| 模式 | 目的 |
+|------|------|
+| **Explore Mode** | divergence — 需求模糊时发散，不确定性消除，方案分析 |
+| **Execution Mode** | deterministic implementation — 需求明确时收敛，确定性输出与工程落地 |
 
-------
+---
 
 ### 模式切换规则
 
-从探索模式进入执行模式需满足：
+从 Explore 切换到 Execution 需**全部满足**：
 
-- 方案收敛至 1–2 个可行路径
-- 关键技术不确定性已验证
-- 已明确 MVP 范围
+1. 方案收敛至 1–2 个可行路径
+2. 主要不确定性已验证
+3. MVP 范围已充分定义
 
-------
+模式切换应更新 `memory/context.md`。
 
-# 1. 工具能力概览
+---
 
-| 能力域             | 说明                                                       |
-| ------------------ | ---------------------------------------------------------- |
-| **探索性共创**     | 模糊需求 → 问题建模 → 多方案生成 → 假设与验证路径          |
-| **需求澄清与管理** | 原始需求录入 → 多轮澄清 → 解决方案 → PRD → 原型说明 → Demo |
-| **设计决策**       | 技术调研（Research）→ 决策文档（RFC / Decision Doc）       |
-| **实现计划与执行** | 任务拆分 → 分批执行 → 状态回写 → 开发收尾                  |
-| **测试验证**       | 测试计划 → 测试用例 → 测试套件 → 测试报告 → 缺陷报告       |
-| **知识治理**       | 基于 memory/ 目录进行结构化管理与持续更新                  |
-| **流程控制**       | 当前阶段不做强约束，允许灵活探索                           |
+# 1. 核心运行时原则
 
-------
+## 1.1 Memory As Context Anchor
 
-## 1.1 工具边界（不做什么）
+Memory 提供持久化操作上下文。
 
-- 不做项目管理（不负责排期、人力分配）
-- 不做 CI/CD 编排（仅输出发布方案）
-- 不做代码托管（依赖 Git，不替代 PR/MR）
-- 不做实时协作（基于文件与版本控制）
-- 不做外部系统集成（如 Jira/Linear）
-- **不直接给出唯一正确方案（探索阶段优先多解）**
+Agent MUST：
+- 在提出新方案前参考已有决策
+- 保持架构连续性
+- 避免与既有项目结构矛盾
 
-------
+**用户显式指令可覆盖 memory**。冲突时：指出冲突 → 请求确认 → 确认后写入 memory。
 
-# 2. 探索性需求与共创机制（Exploratory Co-design）
+---
 
-## 2.1 适用场景
+## 1.2 决策连续性
 
-- 需求模糊或未定义清晰
-- 存在多种技术路径
-- 需要 AI 参与“定义问题”
-- 需要快速试错 / PoC
+提出新决策前：
+- 检查 `memory/decisions.md`
+- 检查 active / rejected / superseded 条目
+- 避免重复已被拒绝的方案
 
-------
+若提议曾被拒绝的方案，必须说明实质性差异。
 
-## 2.2 AI 在探索阶段的角色
+---
 
-| 角色       | 说明                |
-| ---------- | ------------------- |
-| 问题重构者 | 将模糊需求结构化    |
-| 方案生成器 | 提供多种可行路径    |
-| 权衡分析者 | 分析 trade-off      |
-| 假设驱动者 | 提出可验证假设      |
-| 原型建议者 | 给出 MVP / PoC 路径 |
+## 1.3 显式假设
 
-------
+所有未验证假设使用：
 
-## 2.3 探索阶段产物
+```
+[ASSUMPTION: ...]
+```
 
-- Problem Framing（问题定义）
-- Solution Candidates（方案候选）
-- Decision Points（关键决策点）
-- Hypothesis List（假设列表）
-- Validation Plan（验证计划）
+禁止隐式假设。
 
-👉 注意：这些是**中间态产物，可反复演进**
+---
 
-------
+## 1.4 行为边界
 
-## 2.4 行为约束
+Agent MUST NOT 自主：
+- 执行项目管理（排期、人力分配）
+- 管理 CI/CD 流水线
+- 管理 Git hosting 工作流
+- 执行外部服务集成
+- 编造不存在的项目基础设施
+- 无充分理由重写架构
 
-- 最多提供 3–5 个方案
-- 必须包含 trade-off 分析
-- 明确标注假设
-- 主动说明当前处于探索阶段
+Agent MAY 为这些领域提供计划/建议。
 
-------
+---
 
-# 3. Memory 管理规范（Agent Memory System）
+# 2. 探索模式（Explore Mode）
 
-## 3.1 设计目标
+### 触发条件
+
+- 需求模糊
+- 架构未定
+- trade-off 不清楚
+- 存在重大不确定性
+
+### 输出要求
+
+1. 问题框架（Problem Framing）
+2. 2-5 个候选方案（Solution Candidates）
+3. trade-off 分析
+4. 假设标注（[ASSUMPTION: ...]）
+5. 验证策略（Validation Plan）
+6. 关键决策点（Decision Points）
+
+---
+
+# 3. 执行模式（Execution Mode）
+
+### 触发条件
+
+- 实现路径足够清晰
+- 架构基本稳定
+- 需求可操作
+
+### 输出要求
+
+1. 当前目标（Current Objective）
+2. 任务拆分（Task Breakdown）
+3. 依赖关系（Dependencies）
+4. 架构约束（Architectural Constraints）
+5. 执行计划（Execution Plan）
+
+---
+
+# 4. Memory 管理规范（Agent Memory System）
+
+## 4.1 设计目标
 
 Memory 用于提供**持续上下文能力**：
 
 - 保留长期知识（业务/技术）
 - 避免重复决策
 - 支持持续演进
+- **防止 token 膨胀（通过压缩机制）**
 
-------
+---
 
-## 3.2 目录结构
+## 4.2 目录结构
 
 ```text
 memory/
-├── product.md
-├── tech.md
-├── structure.md
-├── glossary.md
-├── decisions.md
-├── context.md
-└── history/
-    ├── YYYY-MM-DD-xxx.md
+├── context.md        # 当前运行时状态 ⭐ 始终加载，overwrite
+├── decisions.md      # ADR 格式决策记录 ⭐ append-only
+├── product.md        # 稳定业务知识，overwrite
+├── tech.md           # 技术架构记忆，overwrite
+├── structure.md      # 当前项目结构，overwrite
+├── glossary.md       # 术语表，append
+├── history/          # 里程碑摘要（仅里程碑）
+└── archive/          # 压缩后的历史 memory
 ```
 
-------
+---
 
-## 3.3 核心文件说明
+## 4.3 读写策略
 
-### product.md（业务记忆）
+| 文件 | 本质 | 策略 | 加载方式 |
+|------|------|------|----------|
+| context.md | 当前状态 | overwrite | 始终加载 |
+| decisions.md | 历史事实 | append-only | 始终加载 active 部分 |
+| product.md | 稳定业务知识 | overwrite | 业务推理时 |
+| tech.md | 稳定技术架构 | overwrite | 实现/架构时 |
+| structure.md | 当前项目结构 | overwrite | 文件/模块操作时 |
+| glossary.md | 术语标准化 | append | 术语歧义时 |
+| history/ | 里程碑摘要 | 仅新文件 | 历史推理时 |
+| archive/ | 压缩历史 | overwrite | 长期恢复时 |
 
-- 产品定位
-- 用户角色
-- 核心场景
-- 商业模型
+---
 
-------
+## 4.4 Memory 压缩（v2.0.0 新增）
 
-### tech.md（技术记忆）
+当 memory 过度增长时：
 
-- 技术栈
-- 架构
-- 设计原则
-- 性能/安全要求
+- 被替代的 decisions → 摘要化
+- 废弃的 context → 归档至 archive/
+- 历史记录 → 压缩
+- 重复术语 → 合并去重
+- 保留 active 操作知识
 
-------
+原则：**active state > historical detail**
 
-### structure.md（结构记忆）
+---
 
-- 目录结构
-- 模块划分
-- 入口文件
-- 依赖关系
+## 4.5 decisions.md（决策记忆）⭐ 核心
 
-------
+ADR 格式，append-only。包含 Status lifecycle（active | superseded | deprecated | rejected）。
 
-### glossary.md（术语表）
+```markdown
+## [YYYY-MM-DD] Decision Title
 
-- 统一业务/技术术语
-- 避免语义歧义
+Status: active | superseded | deprecated | rejected
 
-------
+### Context
+...
 
-## ⭐ 关键增强
+### Alternatives
+- Option A (selected): ...
+- Option B (rejected): ... — reason
 
-------
+### Decision
+...
 
-### decisions.md（决策记忆）
+### Rationale
+...
 
-记录关键决策及其原因：
-
-```md
-## [YYYY-MM-DD] 决策标题
-
-- 背景：
-- 备选方案：
-- 决策：
-- 原因：
-- 影响：
-- 状态：
+### Consequences
+...
 ```
 
-👉 作用：
+关键约束：
+- 提案前检查 rejected entries
+- 被拒绝方案必须说明差异才可重提
 
-- 防止重复讨论
-- 保留“为什么”
+---
 
-------
+## 4.6 context.md（当前上下文）
 
-### context.md（当前上下文）
+当前运行时状态，始终加载，overwrite 策略。
 
-记录当前阶段状态：
+```markdown
+# Current State
 
-```md
-## 当前阶段
+Mode: Explore | Execution
+Current Goal:
+Current Phase:
 
-- 阶段：
-- 当前目标：
-- 关键任务：
+# Active Tasks
+- [ ] ...
 
-## 当前约束
+# Constraints
+- ...
 
-- 时间：
-- 技术限制：
-
-## 当前风险
+# Risks
+- Risk: ...（Mitigation: ...）
 ```
 
-👉 特点：
+---
 
-- 高频更新
-- 属于“短期记忆”
+## 4.7 history/（里程碑记录）
 
-------
+仅记录里程碑，不做逐条执行日志。
 
-### history/（历史记录）
+```markdown
+# YYYY-MM-DD — Milestone Title
 
-记录阶段性变化：
+## Summary
+...
 
-```md
-# YYYY-MM-DD 标题
+## Key Decisions Made
+...
 
-## 变更内容
-## 原因
-## 影响
+## Key Changes
+...
+
+## Impact
+...
 ```
 
-👉 区别：
+| 类型 | 作用 |
+|------|------|
+| decisions | 结论（为什么） |
+| history | 里程碑摘要（发生了什么） |
 
-| 类型      | 作用 |
-| --------- | ---- |
-| decisions | 结论 |
-| history   | 过程 |
+---
 
-------
+# 5. 幻觉防御（Hallucination Guardrails）
 
-## 3.4 Memory 分层模型
+执行前必须校验 memory：
 
-```text
-长期记忆（product / tech / structure / glossary）
-        ↓
-决策记忆（decisions）
-        ↓
-短期记忆（context）
-        ↓
-过程记录（history）
-```
+| 校验层 | 规则 |
+|--------|------|
+| **Structure Verification** | 创建/修改文件前校验 `structure.md` |
+| **Decision Verification** | 架构建议前检查相关 ADR |
+| **Technology Verification** | 技术栈相关实现前校验 `tech.md` |
+| **Assumption Visibility** | 未验证声明必须标注 `[ASSUMPTION: ...]` |
 
-------
+---
 
-## 3.5 使用规范（关键）
+# 6. Agent 行为原则（强约束）
 
-### Agent 行为要求
-
-- 必须优先读取 memory/
-- 不得违反已有 decisions
-- 在关键节点更新 memory
-
-------
-
-### 更新策略
-
-| 文件         | 更新频率 |
-| ------------ | -------- |
-| product.md   | 极低     |
-| tech.md      | 低       |
-| structure.md | 中       |
-| glossary.md  | 低       |
-| decisions.md | 中       |
-| context.md   | 高       |
-| history      | 中       |
-
-------
-
-## 3.6 Memory 运行机制
-
-- Memory 的具体读写策略、触发条件与格式规范，定义在：
-
-  \> ./memory.md
-
-  Agent 在执行过程中必须遵循该规范。
-
-------
-
-# 4. 工作流程模型（统一视角）
-
-```text
-模糊需求
-   ↓
-探索模式（多方案 + 假设）
-   ↓
-方案收敛
-   ↓
-执行模式（PRD / 任务拆分）
-   ↓
-开发 & 测试
-   ↓
-交付
-```
-
-------
-
-# 5. Agent 行为原则（强约束）
-
-- 优先上下文（memory > 当前输入）
+- Memory 提供默认上下文，用户可显式覆盖
 - 不重复已有决策
 - 不假设隐含需求（必须显式说明假设）
 - 输出需具备结构化
 - 探索阶段优先多解，执行阶段优先确定性
+- 优先加载 active state，而非历史细节
 
-------
+---
 
-# 6. 总结
+# 7. 推荐执行顺序
 
-本规范定义了三大核心能力：
+```
+1. Load minimum memory（context + active decisions）
+2. Detect mode
+3. Expand relevant memory（按需条件加载）
+4. Reason
+5. Execute
+6. Update memory selectively（仅稳定、已验证信息）
+7. Compress if necessary
+```
 
-------
+---
 
-### 🧠 1. 探索能力（解决“不知道要做什么”）
+# 8. 设计哲学
 
-- 问题建模
-- 多方案生成
-- 假设驱动
+MemGuard 优先：
 
-------
+- continuity > statelessness
+- decisions > conversation history
+- active context > historical detail
+- structure > improvisation
+- controlled autonomy > unrestricted generation
 
-### ⚙️ 2. 执行能力（解决“怎么做”）
+旨在减少：
 
-- PRD → 设计 → 实现 → 测试
+- 幻觉架构
+- 重复决策循环
+- 上下文漂移
+- memory 膨胀
+- 实现不一致
 
-------
+同时保留：
 
-### 🧩 3. 记忆能力（解决“不会重复犯错”）
-
-- 长期记忆
-- 决策沉淀
-- 上下文驱动
-
-------
-
+- 适应性
+- 用户覆盖能力
+- 迭代式架构演进
+- 长期项目连贯性

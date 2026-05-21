@@ -1,5 +1,7 @@
 # Skill 能力拓展 ROI 分析
 
+> **状态**: ✅ Phase 1 已于 v2.0.0 实施（ADR 扩展 decisions.md）
+>
 > 分析时间：2026-05-09  
 > 分析目标：在 OpenCode + OhMyOpenAgent + Memguard 组合下，评估短期可编码能力的 ROI，找到 token 消耗与收益的最佳平衡点。  
 > 用户场景：个人 vibe-coding，token-budget 敏感

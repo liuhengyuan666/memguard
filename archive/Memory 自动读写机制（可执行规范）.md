@@ -1,8 +1,12 @@
 # Memory 自动读写机制（可执行规范）
 
+> **版本**: v2.0.0（2026-05-21 更新，对齐 SKILL.md v2.0.0）
+
+---
+
 # 1. 核心设计思路（很重要）
 
-把 memory 从“文件”升级为：
+把 memory 从"文件"升级为：
 
 > **Agent 的外部持久化状态（State Store）**
 
@@ -12,214 +16,169 @@
 2. **什么时候写（Write Trigger）**
 3. **写什么（Write Policy）**
 
-------
+v2.0.0 核心升级：从「全量加载」进化为「按需加载 + 主动压缩」。
+
+---
 
 # 2. Memory 读取机制（Read Pipeline）
 
-## 2.1 默认读取策略（强制）
+## 2.1 最少必需加载
 
-每次 Agent 执行前，必须加载：
+每次 Agent 执行前，**最少必须**加载：
 
 ```
-memory/context.md        ← 当前状态（必须）
-memory/decisions.md      ← 决策约束（必须）
-memory/structure.md      ← 代码结构（执行阶段）
-memory/product.md        ← 业务相关（按需）
-memory/tech.md           ← 技术相关（按需）
+memory/context.md        ← 当前状态（始终加载）
+memory/decisions.md      ← active 部分（始终加载）
 ```
 
-------
+---
 
-## 2.2 分模式读取优化（关键）
+## 2.2 按需条件加载
 
-### 🧠 探索模式
+其余文件仅在相关时加载：
 
-重点加载：
+| 文件 | 加载条件 |
+|------|----------|
+| product.md | 业务/领域推理 |
+| tech.md | 实现/架构操作 |
+| structure.md | 文件/模块操作 |
+| glossary.md | 术语歧义 |
+| history/ | 历史推理 |
+| archive/ | 长期上下文恢复 |
 
-- product.md
+---
+
+## 2.3 加载优先级
+
+```
+active context → active decisions → current structure → compressed summaries → historical detail
+```
+
+> 关键原则：active state > historical detail
+
+---
+
+## 2.4 分模式读取优化
+
+### 🧠 Explore 模式
+
+加载：
 - context.md
-- （可选）decisions.md
+- product.md（业务相关）
+- active decisions
 
-👉 目的：理解问题空间
+👉 目的：理解问题空间，避免重复已拒绝方案
 
-------
+---
 
-### 🔧 执行模式
+### 🔧 Execution 模式
 
-重点加载：
-
+加载：
+- context.md
 - structure.md
 - tech.md
-- decisions.md
-- context.md
+- active decisions
 
-👉 目的：避免做错 & 遵守已有约束
+👉 目的：避免结构幻觉 & 遵守已有约束
 
-------
-
-## 2.3 实现建议（opencode 可落地）
-
-你可以在 Agent prompt 里强制插入：
-
-```
-[MEMORY CONTEXT]
-
-You must read and follow:
-
-- memory/context.md (current state)
-- memory/decisions.md (do not violate)
-- memory/structure.md (if coding)
-```
-
-或者更工程一点：
-
-👉 做一个 pre-hook：
-
-```
-cat memory/context.md memory/decisions.md
-```
-
-------
+---
 
 # 3. Memory 写入机制（Write Pipeline）
 
-## 3.1 写入触发条件（核心）
+## 3.1 写入触发条件
 
-只有在以下情况才允许写 memory：
+| 触发类型 | 写入目标 | 说明 |
+|----------|----------|------|
+| 确认的决策 | decisions.md | append-only，含 Status lifecycle |
+| 阶段/目标切换 | context.md | overwrite |
+| 重大架构变更 | tech.md | overwrite |
+| 重大结构调整 | structure.md | overwrite |
+| 术语稳定化 | glossary.md | append |
+| 里程碑完成 | history/ | 新文件 |
 
-| 触发类型          | 写入目标     |
-| ----------------- | ------------ |
-| 做出技术/产品决策 | decisions.md |
-| 阶段切换          | context.md   |
-| 重要结构变化      | structure.md |
-| 阶段性总结        | history/     |
+---
 
-------
+## 3.2 禁止写入（Forbidden Writes）
 
-## 3.2 写入流程（强约束）
+- 推测性想法
+- 临时思考
+- 未解决的探索
+- 重复信息
+- 临时调试细节
+- 冗长执行日志
 
-```
-1. 判断是否需要写 memory
-2. 生成结构化内容
-3. 标记写入类型
-4. 输出写入 patch（而不是直接改）
-```
+---
 
-------
+## 3.3 写入策略总表
 
-## 3.3 写入格式（统一协议）
+| 文件 | 策略 | 原因 |
+|------|------|------|
+| decisions.md | append-only | 历史事实不可覆盖 |
+| context.md | overwrite | 当前状态，无需历史版本 |
+| structure.md | overwrite | 反映当前真实结构 |
+| tech.md | overwrite | 反映当前技术栈 |
+| product.md | overwrite | 稳定业务知识 |
+| glossary.md | append | 术语持续积累 |
+| history/ | 仅新里程碑文件 | 不做逐条执行日志 |
+| archive/ | overwrite | 压缩后的历史摘要 |
 
-让 Agent 输出：
+---
 
-```
-{
-  "memory_write": [
-    {
-      "target": "decisions.md",
-      "action": "append",
-      "content": "## [2026-04-24] 选择 FastAPI ..."
-    }
-  ]
-}
-```
+# 4. Memory 压缩机制（v2.0.0 新增）
 
-👉 关键点：
+防止 memory 无限膨胀导致 context collapse：
 
-- ❌ 不直接改文件
-- ✅ 输出“意图”，由外部执行
+当 memory 过度增长时：
+- 被替代的 decisions → 摘要化
+- 废弃的 context → 归档至 archive/
+- 历史记录 → 压缩
+- 重复术语 → 合并去重
+- 保留 active 操作知识
 
-------
-
-## 3.4 为什么必须这样？
-
-否则你会遇到：
-
-- AI 覆盖文件
-- 写乱结构
-- 不可控 diff
-
-------
-
-# 4. Memory 写入策略（Write Policy）
-
-## 4.1 decisions.md（最重要）
-
-只有在以下情况写入：
-
-- 技术选型确定
-- 架构变更
-- 关键 trade-off 已决定
-
-------
-
-## 4.2 context.md（高频更新）
-
-每轮可以更新，但必须：
-
-- 不覆盖历史结构
-- 只更新“当前状态”
-
-------
-
-## 4.3 history/（日志型）
-
-用于：
-
-- 阶段结束总结
-- 重要变更记录
-
-------
-
-## 4.4 禁止写入
-
-- 不完整信息
-- 未验证假设
-- 探索阶段的随意想法
-
-------
-
-# 5. Agent 内部决策逻辑（核心智能）
-
-你可以强制 Agent 遵循这个判断：
+压缩原则：
 
 ```
-IF 信息是“长期稳定” → product / tech
-IF 信息是“已决策” → decisions
-IF 信息是“当前状态” → context
-IF 信息是“过程记录” → history
-ELSE → 不写
+active state > historical detail
 ```
 
-------
+---
 
-# 6. Memory Hook 机制（工程关键）
-
-## 6.1 Pre-Run Hook（执行前）
+# 5. Agent 内部决策逻辑
 
 ```
-# 加载 memory
-cat memory/context.md
-cat memory/decisions.md
+IF 信息是「稳定业务知识」 → product.md
+IF 信息是「稳定技术架构」 → tech.md
+IF 信息是「已确认决策」   → decisions.md（append-only）
+IF 信息是「当前状态」     → context.md（overwrite）
+IF 信息是「里程碑完成」   → history/（新文件）
+IF 信息是「废弃/过期」   → archive/（摘要化）
+ELSE                     → 不写
 ```
 
-------
+---
 
-## 6.2 Post-Run Hook（执行后）
+# 6. 行为边界（Operational Boundaries）
 
-1. 检查 Agent 输出是否包含：
+Agent 不得自主：
+- 执行项目管理
+- 管理 CI/CD 流水线
+- 管理 Git hosting 工作流
+- 执行外部服务集成
+- 编造不存在的项目基础设施
+- 无充分理由重写架构
 
-```
-"memory_write": [...]
-```
+可提供计划/建议，但不得自主执行。
 
-1. 自动写入文件
+---
 
-------
+# 7. Memory 与用户输入的关系
 
-## 6.3 可选：Diff 模式（更高级）
+Memory 提供默认操作上下文。
+**用户显式指令可覆盖 memory。**
 
-```
-git diff memory/
-```
+当存在冲突时：
+1. 指出冲突
+2. 如有歧义请求确认
+3. 确认后将覆盖写入 memory
 
-👉 用于审计 AI 行为
+> v2.0.0 修复：v1.x 中 "memory 优先级高于用户输入" 会导致 Agent 拒绝用户修正历史。
