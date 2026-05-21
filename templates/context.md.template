@@ -1,18 +1,17 @@
-## 当前阶段
+# Current State
 
-- 阶段：探索模式 / 执行模式
-- 当前目标：
-- 关键任务：
-  - [ ] Task-1：...
-  - [ ] Task-2：...
+Mode: Explore | Execution
+Current Goal:
+Current Phase:
 
-## 当前约束
+# Active Tasks
 
-- 时间：
-- 技术限制：
-- 不可违反的 decisions：
+- [ ] ...
 
-## 当前风险
+# Constraints
 
-- 风险-1：...（缓解措施：...）
-- 风险-2：...（缓解措施：...）
+- ...
+
+# Risks
+
+- Risk: ...（Mitigation: ...）
