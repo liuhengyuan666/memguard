@@ -1,11 +1,21 @@
 ---
 name: memguard
-description: Structured memory management and behavioral runtime contract for AI agents. Provides long-term context continuity, decision anchoring, hallucination reduction, and controlled Explore → Execution workflows.
+description: |
+  **MEMORY MANAGEMENT SOP** — Structured project memory with ADR-based decisions,
+  trap tracking, and controlled Explore↔Execution workflows. Activates when the
+  user asks about project decisions, task status, memory, session context, or
+  mentions a previously discussed topic. WHEN: "remember this", "record this
+  decision", "what did we decide about", "check memory", "update task status",
+  "start new session", "bootstrap memory", "project memory", "what's the current
+  phase", "any open tasks". INVOKES: memguard_runtime_bootstrap (session start),
+  memguard_runtime_query_memory (before decisions/writing code), 
+  memguard_runtime_commit_event (after decisions/task updates).
 license: MIT
 compatibility: opencode
 metadata:
-  version: 2.0.0
+  version: 3.0.0
   author: Lhy
+  requires-mcp: ["memguard"]
   tags:
     [
       memory,
@@ -13,482 +23,279 @@ metadata:
       context-management,
       hallucination-guard,
       workflow,
-      agent-runtime,
+      agent-sop,
+      mcp,
     ]
 ---
 
-# MemGuard — Agent Memory & Runtime Spec
+# MemGuard v3 — Agent SOP (Standard Operating Procedure)
 
-> Trigger:
-> Activate automatically when `memory/` exists in project root.
-> If absent, initialize during first project interaction.
-
-> Goal:
-> Maintain stable long-term context, reduce hallucinations,
-> preserve architectural decisions, and enforce structured
-> agent operating behavior across sessions.
-
----
-
-# 1. Core Runtime Principles
-
-## 1.1 Memory As Context Anchor
-
-Memory provides persistent operational context.
-
-Agent MUST:
-
-- reference prior decisions before proposing alternatives
-- preserve architectural continuity
-- avoid contradicting established project structure
-
-Explicit user instructions MAY override memory.
-
-When conflict exists:
-
-1. surface the conflict
-2. request confirmation if ambiguity exists
-3. record override into memory if confirmed
+> **You have been equipped with the `memguard` MCP server (3 tools).
+> This SOP tells you exactly WHEN and HOW to use them.**
+>
+> **MCP tools**: `memguard_runtime_bootstrap` | `memguard_runtime_query_memory`
+> | `memguard_runtime_commit_event`
+>
+> **Design philosophy**: continuity > statelessness · decisions > conversation
+> history · active context > historical detail
 
 ---
 
-## 1.2 Decision Continuity
+## 1. Memory As Context Anchor
 
-Before proposing new technical or product decisions:
+Memory provides persistent operational context across sessions.
 
-- inspect `memory/decisions.md`
-- check for active/rejected/superseded entries
-- avoid repeating previously rejected approaches
+Agent **MUST**:
+- Reference prior decisions before proposing alternatives
+- Preserve architectural continuity
+- Avoid contradicting established project structure
 
-If proposing a previously rejected idea,
-Agent MUST explain the meaningful difference.
+Explicit user instructions **MAY** override memory. When conflict exists:
+1. Surface the conflict explicitly
+2. Request confirmation if ambiguity exists
+3. Record the override into memory if confirmed
 
 ---
 
-## 1.3 Explicit Assumptions
+## 2. Session Start Protocol
 
-All unverified assumptions MUST use:
+**MUST** call `memguard_runtime_bootstrap()` as the **very first action** in any
+session, after context loss, or on first interaction with a new project.
 
-```text
-[ASSUMPTION: ...]
+Do **NOT** generate any code or propose any architecture before the bootstrap
+result is received. Read and acknowledge:
+- `current_phase` — the project's current operational phase
+- `active_tasks` — tasks being tracked
+- `constraints` — architectural constraints that **MUST** be respected
+- `latest_adr` — the most recent architecture decision
+
+---
+
+## 3. Pre-Decision / Pre-Coding Check
+
+**MUST** call `memguard_runtime_query_memory(query_intent="...")` **before**:
+- Proposing a new architecture decision
+- Modifying any core module (auth, database driver, routing, data model)
+- Introducing a new library, framework, or external dependency
+- Revisiting a topic that was discussed in prior sessions
+- Writing code that touches an area covered by an existing ADR
+
+Pass your intent as a concise natural-language description (e.g.,
+`"authentication token validation"`, `"database migration strategy"`).
+
+If the query returns a superseded/rejected ADR relevant to your proposal:
+**MUST** explain the material difference before proceeding. Do **NOT**
+re-propose a previously rejected approach without this explanation.
+
+---
+
+## 4. State Commit Triggers
+
+**MUST** call `memguard_runtime_commit_event` immediately when:
+
+| Event | event_type | payload | When |
+|-------|-----------|---------|------|
+| Architecture decision | `AdrCommitted` | `{ id, title, status, context, decision, tags }` | Major tech choices, stack decisions, API contract changes, performance/security tradeoffs |
+| Task status change | `TaskUpdated` | `{ task_id, new_status }` | Any transition: Todo→InProgress, InProgress→Done |
+| Bug or error with fix | `TrapRecorded` | `{ error_signature, context, solution }` | Non-trivial bugs where the fix is reusable knowledge |
+| Phase transition | `PhaseChanged` | `{ new_phase }` | Switching between Explore/Execution modes, or between planning/implementation/verification |
+
+### ADR Status Lifecycle
+
+```
+Proposed → Accepted → Superseded
+                        Deprecated
+                        Rejected
 ```
 
-Implicit assumptions are forbidden.
+- **Proposed**: Under discussion, not yet committed
+- **Accepted**: Active and binding — **MUST** be followed
+- **Superseded**: Replaced by a newer ADR — reference the superseding ADR id
+- **Deprecated**: No longer applicable but kept for historical record
+- **Rejected**: Explicitly rejected — **MUST NOT** be re-proposed without
+  explaining the material difference
+
+### Phase canonical names (MUST use short identifiers)
+
+| Phase | Meaning |
+|-------|---------|
+| `explore` | Divergence, uncertainty reduction, solution analysis |
+| `plan` | Architecture design, task decomposition |
+| `implement` | Deterministic implementation |
+| `verify` | Testing, review, validation |
+| `complete` | Delivered and verified |
+
+**MUST NOT** use free-text phase names longer than 32 characters.
 
 ---
 
-## 1.4 Dual-Mode Operation
+## 5. Explore ↔ Execution Mode Switching
 
-Agent operates in TWO modes only:
+Agent operates in two modes only:
 
-| Mode | Purpose |
-|---|---|
-| Explore | divergence, uncertainty reduction, solution analysis |
-| Execution | deterministic implementation and delivery |
+| Mode | Purpose | Output structure |
+|------|---------|-----------------|
+| **Explore** | Divergence, uncertainty reduction, solution analysis | Problem framing + 2-5 candidate approaches + tradeoffs + assumptions + validation strategy |
+| **Execution** | Deterministic implementation and delivery | Current objective + task breakdown + dependencies + constraints + execution plan |
 
-Agent MUST adapt output structure to current mode.
+**Switch Explore → Execution** ONLY when **ALL 3** conditions are met:
+1. Solution has converged to 1-2 viable paths
+2. Major uncertainty has been validated
+3. MVP scope is sufficiently defined
 
----
+**Switch Execution → Explore** when:
+1. An unvalidated assumption is discovered
+2. A previously accepted ADR is found to be invalid
+3. A new major constraint is introduced mid-implementation
 
-## 1.5 Operational Boundaries
-
-Agent MUST NOT autonomously:
-
-- perform project management
-- manage CI/CD pipelines
-- manage git hosting workflows
-- perform external service integration
-- invent infrastructure not present in project
-- rewrite architecture without justification
-
-Agent MAY provide plans/recommendations for these areas.
+**MUST** call `memguard_runtime_commit_event` with `PhaseChanged` on every
+mode transition.
 
 ---
 
-# 2. Runtime Modes
+## 6. Hallucination Guardrails (4-Layer Validation)
 
-## 2.1 Explore Mode
+Before any major reasoning or implementation, **MUST** verify against memory:
 
-Use when:
+### Layer 1 — Structure Verification
+Before creating or modifying files:
+- Verify against the project structure described in bootstrap's `constraints`
+- Avoid inventing nonexistent modules or assuming architecture
 
-- requirements are ambiguous
-- architecture is unresolved
-- trade-offs remain unclear
-- major uncertainty exists
+### Layer 2 — Decision Verification
+Before proposing architecture:
+- Inspect relevant ADRs via `memguard_runtime_query_memory`
+- Avoid contradicting any active ADR (`status: Accepted`)
+- Reference ADRs with `[ADR-XXX]` notation to enable traceability
 
-Output MUST include:
-
-1. problem framing
-2. 2-5 candidate approaches
-3. trade-offs
-4. assumptions
-5. validation strategy
-6. decision points
-
----
-
-## 2.2 Execution Mode
-
-Use when:
-
-- implementation path is sufficiently clear
-- architecture is mostly stable
-- requirements are actionable
-
-Output MUST include:
-
-1. current objective
-2. task breakdown
-3. dependencies
-4. architectural constraints
-5. execution plan
-
----
-
-## 2.3 Mode Transition Rules
-
-Transition Explore → Execution ONLY when:
-
-- solution converges to 1-2 viable paths
-- major uncertainty is validated
-- MVP scope is sufficiently defined
-
-Mode transitions SHOULD update `memory/context.md`.
-
----
-
-# 3. Memory Structure
-
-```text
-memory/
-├── context.md
-├── decisions.md
-├── product.md
-├── tech.md
-├── structure.md
-├── glossary.md
-├── history/
-└── archive/
-```
-
----
-
-## File Responsibilities
-
-| File | Purpose | Strategy |
-|---|---|---|
-| context.md | current operational state | overwrite |
-| decisions.md | ADR-style decisions | append-only |
-| product.md | stable business knowledge | overwrite |
-| tech.md | stable technical architecture | overwrite |
-| structure.md | current project structure | overwrite |
-| glossary.md | terminology normalization | append |
-| history/ | milestone summaries only | append |
-| archive/ | compressed historical memory | overwrite |
-
----
-
-# 4. Memory Loading Strategy
-
-Agent MUST load memory selectively.
-
-## Minimum Required
-
-Always load:
-
-- `context.md`
-- active sections of `decisions.md`
-
----
-
-## Conditional Loading
-
-Load ONLY when relevant:
-
-| File | Load When |
-|---|---|
-| product.md | business/domain reasoning |
-| tech.md | implementation/architecture |
-| structure.md | file/module operations |
-| glossary.md | terminology ambiguity |
-| history/ | historical reasoning |
-| archive/ | long-term context recovery |
-
----
-
-## Loading Priority
-
-Prefer:
-
-1. active context
-2. active decisions
-3. current structure
-4. compressed summaries
-5. historical detail
-
----
-
-# 5. Memory Write Policy
-
-Agent SHOULD minimize unnecessary memory writes.
-
-Only stable, validated, reusable information
-belongs in memory.
-
----
-
-## 5.1 Write Triggers
-
-| Event | Target |
-|---|---|
-| confirmed decision | decisions.md |
-| phase/goal change | context.md |
-| major architecture change | tech.md |
-| major structure change | structure.md |
-| terminology stabilization | glossary.md |
-| milestone completion | history/ |
-
----
-
-## 5.2 Forbidden Writes
-
-DO NOT write:
-
-- speculative ideas
-- temporary thoughts
-- unresolved exploration
-- duplicated information
-- transient debugging details
-- verbose execution logs
-
----
-
-## 5.3 Write Rules
-
-| File | Allowed Action |
-|---|---|
-| decisions.md | append-only |
-| glossary.md | append |
-| context.md | overwrite |
-| tech.md | overwrite |
-| structure.md | overwrite |
-| archive/ | overwrite |
-| history/ | new milestone files only |
-
----
-
-# 6. ADR Decision Format
-
-`memory/decisions.md`
-
-```markdown
-## [YYYY-MM-DD] Decision Title
-
-Status: active | superseded | deprecated | rejected
-
-### Context
-...
-
-### Alternatives
-...
-
-### Decision
-...
-
-### Rationale
-...
-
-### Consequences
-...
-```
-
----
-
-# 7. Context Format
-
-`memory/context.md`
-
-```markdown
-# Current State
-
-Mode:
-Current Goal:
-Current Phase:
-
-# Active Tasks
-
-- ...
-
-# Constraints
-
-- ...
-
-# Risks
-
-- ...
-```
-
----
-
-# 8. Hallucination Guardrails
-
-Before major reasoning or implementation,
-Agent MUST verify against memory.
-
----
-
-## 8.1 Structure Verification
-
-Before creating/modifying files:
-
-- verify against `structure.md`
-- avoid inventing nonexistent modules
-- avoid assuming architecture
-
----
-
-## 8.2 Decision Verification
-
-Before architecture suggestions:
-
-- inspect relevant decisions
-- avoid contradicting active ADRs
-
----
-
-## 8.3 Technology Verification
-
+### Layer 3 — Technology Verification
 Before stack-specific implementation:
+- Verify tech constraints from `memguard_runtime_bootstrap`
+- Avoid hallucinating dependencies, frameworks, or APIs not present in the project
 
-- verify against `tech.md`
-- avoid hallucinating dependencies/frameworks
+### Layer 4 — Assumption Visibility
+- All unverified claims **MUST** use `[ASSUMPTION: ...]`
+- All external knowledge **MUST** cite the source
+- Implicit assumptions are **forbidden**
 
 ---
 
-## 8.4 Assumption Visibility
+## 7. Memory Write Policy
 
-Unverified claims MUST use:
+Agent **SHOULD** minimize unnecessary memory writes. Only stable, validated,
+reusable information belongs in memory.
 
-```text
-[ASSUMPTION: ...]
+### Write Triggers
+| Event | Commit as |
+|-------|-----------|
+| Confirmed architecture decision | `AdrCommitted` |
+| Phase/goal change | `PhaseChanged` |
+| Major architecture change | `AdrCommitted` |
+| Non-trivial bug fix with reusable solution | `TrapRecorded` |
+| Task status change | `TaskUpdated` |
+
+### Forbidden Writes
+**MUST NOT** commit these as events:
+- Speculative ideas (unvalidated)
+- Temporary thoughts
+- Unresolved exploration
+- Duplicated information
+- Transient debugging details
+- Verbose execution logs
+- Lint fixes, typo corrections, variable renames, formatting changes
+
+### File Access
+**MUST NOT** read or write `memory/*.md` files directly. All memory operations
+go through the MCP tools: `memguard_runtime_bootstrap`,
+`memguard_runtime_query_memory`, `memguard_runtime_commit_event`.
+
+`.memguard/*.json` is a runtime cache derived from `memory/*.md`. It is
+automatically managed — do **NOT** read or edit it.
+
+---
+
+## 8. Memory Compression
+
+To prevent context collapse, memory **MUST** remain compact. When memory grows
+excessively:
+- Summarize obsolete ADRs (`status: superseded` and not referenced in >3 sessions)
+- Archive deprecated context
+- Remove duplicated terminology
+- Retain active operational knowledge
+
+Prefer: `active state > historical detail`
+
+---
+
+## 9. Session Self-Check
+
+Before ending any session, **MUST** verify ALL of the following:
+
+- [ ] Were new decisions made? → `memguard_runtime_commit_event { AdrCommitted }`
+- [ ] Did goals or phase change? → `memguard_runtime_commit_event { PhaseChanged }`
+- [ ] Were non-trivial errors encountered? → `memguard_runtime_commit_event { TrapRecorded }`
+- [ ] Did any tasks change status? → `memguard_runtime_commit_event { TaskUpdated }`
+- [ ] Are all `[ASSUMPTION: ...]` markers either validated or marked for next session?
+- [ ] Does any implementation contradict an active ADR?
+- [ ] Should any ADRs be superseded or deprecated?
+- [ ] Is memory still compact? Should stale decisions be summarized?
+
+**Do NOT consider the session complete until all items are checked.**
+
+---
+
+## 10. Recommended Execution Order
+
+```
+1. memguard_runtime_bootstrap()           → load current state
+2. memguard_runtime_query_memory(...)     → check for relevant decisions/traps
+3. Determine mode (Explore vs Execution)  → apply switching rules from §5
+4. Write code or explore solutions        → apply guardrails from §6
+5. memguard_runtime_commit_event(...)     → persist decisions, tasks, traps, phase
+6. Session self-check                     → verify §9 checklist
 ```
 
 ---
 
-# 9. Memory Compression
+## 11. Constraints & Boundaries
 
-To prevent context collapse,
-memory MUST remain compact.
+Agent **MUST NOT** autonomously:
+- Perform project management operations
+- Manage CI/CD pipelines
+- Manage Git hosting workflows (force-push, change branch protection)
+- Integrate external services not present in the project
+- Invent infrastructure not established in the project memory
+- Rewrite architecture without justification and an ADR
 
-When memory grows excessively:
+Agent **MAY** provide plans and recommendations for these areas.
 
-- summarize obsolete decisions
-- archive deprecated context
-- compress historical records
-- remove duplicated terminology
-- retain active operational knowledge
+---
 
-Prefer:
+## 12. Integration
 
-```text
-active state > historical detail
+Place this file in `.opencode/skills/memguard/` (per project) or
+`~/.config/opencode/skills/memguard/` (global). Alternatively, add the
+remote URL to your `opencode.json`:
+
+```json
+{
+  "skills": {
+    "urls": [
+      "https://raw.githubusercontent.com/liuhengyuan666/memguard/main/"
+    ]
+  }
+}
 ```
 
----
-
-# 10. Project Initialization
-
-## New Project
-
-If no codebase exists:
-
-1. initialize memory structure
-2. request product + technical context
-3. enter Explore mode
+The MCP server must be registered separately in `opencode.json`. See
+`opencode.json.example` for a complete dual-layer configuration template.
 
 ---
 
-## Existing Project
+## Appendix: MCP Tool Quick Reference
 
-If codebase exists:
-
-1. initialize memory structure
-2. scan project structure
-3. infer technical stack
-4. generate initial `structure.md`
-5. generate initial `tech.md`
-6. request user confirmation
-7. determine runtime mode
-
----
-
-# 11. Runtime Self-Check
-
-Before session completion,
-Agent SHOULD verify:
-
-- were new decisions made?
-- did goals change?
-- did architecture change?
-- did terminology stabilize?
-- should memory be compressed?
-- are assumptions marked?
-- does implementation violate ADRs?
-
----
-
-# 12. Recommended Runtime Behavior
-
-Preferred execution order:
-
-```text
-1. Load minimum memory
-2. Detect mode
-3. Expand relevant memory
-4. Reason
-5. Execute
-6. Update memory selectively
-7. Compress if necessary
-```
-
----
-
-# 13. Integration
-
-Place this file in:
-
-```text
-.opencode/skills/
-```
-
-or equivalent OpenAgent skill directory.
-
-Agent SHOULD automatically load and apply
-this runtime contract during sessions.
-
----
-
-# 14. Design Philosophy
-
-MemGuard prioritizes:
-
-- continuity over statelessness
-- decisions over conversation history
-- active context over historical detail
-- structure over improvisation
-- controlled autonomy over unrestricted generation
-
-The system is designed to reduce:
-
-- hallucinated architecture
-- repeated decision cycles
-- context drift
-- memory bloat
-- implementation inconsistency
-
-while preserving:
-
-- adaptability
-- user override capability
-- iterative architecture evolution
-- long-term project coherence
+| Tool | Call When | Key Parameter |
+|------|-----------|---------------|
+| `memguard_runtime_bootstrap` | Session start, context loss | `project_root` (optional) |
+| `memguard_runtime_query_memory` | Before decisions, coding, proposing | `query_intent` (required) |
+| `memguard_runtime_commit_event` | After decisions, task updates, traps, phase changes | `event_type` + `payload` (required) |

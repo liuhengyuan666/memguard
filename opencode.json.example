@@ -1,7 +1,47 @@
 {
+  "$schema": "https://opencode.ai/config.json",
+
+  "//_comment": "=== MemGuard v3: MCP + Skill 双层配置 ===",
+
+  "//_mcp_comment": "MCP 层：注册 memguard-mcp 运行时，提供 3 个工具（bootstrap/query/commit）",
+  "mcp": {
+    "memguard": {
+      "type": "local",
+      "command": ["npx", "-y", "@liuhengyuan/memguard-mcp"],
+      "enabled": true
+    }
+  },
+
+  "//_skill_comment": "Skill 层：加载 Agent SOP，告诉 Agent 何时调用 MCP 工具",
   "skills": {
-    "permissions": {
-      "memguard": "allow"
+    "urls": [
+      "https://raw.githubusercontent.com/liuhengyuan666/memguard/main/"
+    ]
+  },
+
+  "//_alt_config_comment": "如果不想用远程 URL，可以手动下载 SKILL.md：",
+  "//_alt_config": "mkdir -p .opencode/skills/memguard && curl -o .opencode/skills/memguard/SKILL.md https://raw.githubusercontent.com/liuhengyuan666/memguard/main/memguard/SKILL.md",
+
+  "//_env_override_comment": "如果需要显式指定项目根目录（覆盖 CWD 自动检测）：",
+  "//_env_config": {
+    "mcp": {
+      "memguard": {
+        "type": "local",
+        "command": ["npx", "-y", "@liuhengyuan/memguard-mcp"],
+        "env": { "MEMGUARD_PROJECT_ROOT": "/path/to/your/project" },
+        "enabled": true
+      }
+    }
+  },
+
+  "//_local_dev_comment": "本地开发时使用绝对路径指向编译产物：",
+  "//_local_dev": {
+    "mcp": {
+      "memguard": {
+        "type": "local",
+        "command": ["T:\\work\\memguard-mcp\\target\\release\\memguard-mcp.exe"],
+        "enabled": true
+      }
     }
   }
 }
