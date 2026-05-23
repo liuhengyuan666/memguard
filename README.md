@@ -67,7 +67,7 @@ v2.x (纯 Skill):                    v3.0.0 (MCP + Skill):
 
 ```bash
 # 1. 安装 MCP 运行时
-npm install -g @liuhengyuan/memguard-mcp
+npm install -g @henry_lhy/memguard-mcp
 
 # 2. 在你的项目目录安装 Skill
 mkdir -p .opencode/skills/memguard
@@ -86,7 +86,7 @@ curl -o .opencode/skills/memguard/SKILL.md \
   "mcp": {
     "memguard": {
       "type": "local",
-      "command": ["npx", "-y", "@liuhengyuan/memguard-mcp"],
+      "command": ["npx", "-y", "@henry_lhy/memguard-mcp"],
       "enabled": true
     }
   },
@@ -109,7 +109,7 @@ curl -o ~/.config/opencode/skills/memguard/SKILL.md \
   https://raw.githubusercontent.com/liuhengyuan666/memguard/main/memguard/SKILL.md
 
 # 每个项目只需在 opencode.json 注册 MCP：
-# { "mcp": { "memguard": { "type": "local", "command": ["npx", "-y", "@liuhengyuan/memguard-mcp"] } } }
+# { "mcp": { "memguard": { "type": "local", "command": ["npx", "-y", "@henry_lhy/memguard-mcp"] } } }
 ```
 
 ---

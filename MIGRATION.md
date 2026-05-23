@@ -21,7 +21,7 @@
 ### Step 1: 安装 v3 运行时
 
 ```bash
-npm install -g @liuhengyuan/memguard-mcp
+npm install -g @henry_lhy/memguard-mcp
 ```
 
 或从源码编译：
@@ -38,7 +38,7 @@ cd memguard-mcp && cargo build --release
   "mcp": {
     "memguard": {
       "type": "local",
-      "command": ["npx", "-y", "@liuhengyuan/memguard-mcp"],
+      "command": ["npx", "-y", "@henry_lhy/memguard-mcp"],
       "enabled": true
     }
   },

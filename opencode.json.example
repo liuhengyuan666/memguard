@@ -7,7 +7,7 @@
   "mcp": {
     "memguard": {
       "type": "local",
-      "command": ["npx", "-y", "@liuhengyuan/memguard-mcp"],
+      "command": ["npx", "-y", "@henry_lhy/memguard-mcp"],
       "enabled": true
     }
   },
@@ -27,7 +27,7 @@
     "mcp": {
       "memguard": {
         "type": "local",
-        "command": ["npx", "-y", "@liuhengyuan/memguard-mcp"],
+        "command": ["npx", "-y", "@henry_lhy/memguard-mcp"],
         "env": { "MEMGUARD_PROJECT_ROOT": "/path/to/your/project" },
         "enabled": true
       }
