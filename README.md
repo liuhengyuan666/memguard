@@ -177,4 +177,7 @@ continuity > statelessness · decisions > conversation history · active context
 
 ## 许可
 
-MIT
+The source code is licensed under MIT.
+
+However, the project name, logo, and branding are not permitted
+to be used for commercial distribution without explicit permission.
