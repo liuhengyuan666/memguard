@@ -65,9 +65,11 @@ session, after context loss, or on first interaction with a new project.
 Do **NOT** generate any code or propose any architecture before the bootstrap
 result is received. Read and acknowledge:
 - `current_phase` — the project's current operational phase
-- `active_tasks` — tasks being tracked
 - `constraints` — architectural constraints that **MUST** be respected
 - `latest_adr` — the most recent architecture decision
+- `adr_count` / `trap_count` — if `adr_count` is 0 and you are making nontrivial
+  design decisions this session, the project needs its first ADRs
+- `active_tasks` — tasks being tracked (read last; decisions are more important)
 
 ---
 
@@ -95,7 +97,7 @@ re-propose a previously rejected approach without this explanation.
 
 | Event | event_type | payload | When |
 |-------|-----------|---------|------|
-| Architecture decision | `AdrCommitted` | `{ id, title, status, context, decision, tags }` | Major tech choices, stack decisions, API contract changes, performance/security tradeoffs |
+| Architecture decision | `AdrCommitted` | `{ id, title, status, context, decision, tags }` | **After any technology selection, API design decision, architectural tradeoff, or fallback strategy.** Even if uncertain, commit as `Proposed`. If the project has `adr_count: 0`, every nontrivial design decision this session should produce an ADR. |
 | Task status change | `TaskUpdated` | `{ task_id, new_status }` | Any transition: Todo→InProgress, InProgress→Done |
 | Bug or error with fix | `TrapRecorded` | `{ error_signature, context, solution }` | Non-trivial bugs where the fix is reusable knowledge |
 | Phase transition | `PhaseChanged` | `{ new_phase }` | Switching between Explore/Execution modes, or between planning/implementation/verification |
@@ -229,9 +231,11 @@ Prefer: `active state > historical detail`
 
 ## 9. Session Self-Check
 
-Before ending any session, **MUST** verify ALL of the following:
+Before ending any session, **MUST** verify ALL of the following.
+**ADR creation is the highest-priority check** — a session that made nontrivial
+decisions without committing ADRs is incomplete:
 
-- [ ] Were new decisions made? → `memguard_runtime_commit_event { AdrCommitted }`
+- [ ] **Were new architecture decisions made?** → `memguard_runtime_commit_event { AdrCommitted }` — this is the single most important persistence action
 - [ ] Did goals or phase change? → `memguard_runtime_commit_event { PhaseChanged }`
 - [ ] Were non-trivial errors encountered? → `memguard_runtime_commit_event { TrapRecorded }`
 - [ ] Did any tasks change status? → `memguard_runtime_commit_event { TaskUpdated }`
@@ -250,9 +254,13 @@ Before ending any session, **MUST** verify ALL of the following:
 1. memguard_runtime_bootstrap()           → load current state
 2. memguard_runtime_query_memory(...)     → check for relevant decisions/traps
 3. Determine mode (Explore vs Execution)  → apply switching rules from §5
-4. Write code or explore solutions        → apply guardrails from §6
-5. memguard_runtime_commit_event(...)     → persist decisions, tasks, traps, phase
-6. Session self-check                     → verify §9 checklist
+4. Commit any new decisions               → if a nontrivial design choice was
+                                             made, commit an AdrCommitted event
+                                             IMMEDIATELY (before writing code)
+5. Write code or explore solutions        → apply guardrails from §6
+6. memguard_runtime_commit_event(...)     → persist remaining decisions, tasks,
+                                             traps, phase changes
+7. Session self-check                     → verify §9 checklist
 ```
 
 ---
