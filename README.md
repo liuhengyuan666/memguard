@@ -1,85 +1,62 @@
-# Memguard v3 — Agent Memory & Runtime SOP
+# MemGuard v3 — Agent Memory & Runtime SOP
 
-> **Version**: 3.0.0  
-> **Last Updated**: 2026-05-23  
-> **MCP Implementation**: [memguard-mcp](https://github.com/liuhengyuan666/memguard-mcp) (Rust binary, v0.1.0)
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/spec-3.0.0-green.svg)](https://github.com/liuhengyuan666/memguard)
+[![MCP Support](https://img.shields.io/badge/MCP-Supported-orange.svg)](https://modelcontextprotocol.io)
 
-Memguard 是一套面向 AI Agent 的**双层架构**：
-- **Skill 层（本仓库）**：Agent SOP（标准作业程序），定义何时调用工具、遵循什么规则
-- **MCP 层（memguard-mcp）**：Rust 运行时，提供 3 个 MCP 工具作为原子能力
+> **The Git-Native Memory Engine & Operating Spec for AI Agents.**
+> Stop your agents from hallucinating architecture, repeating resolved decisions, or corrupting project state.
 
-两者**不是替代关系**，而是**手与脑的协作**——Skill 告诉 Agent "现在该做什么"，MCP 提供零误差的执行力。
+MemGuard v3 adopts a **decoupled dual-layer architecture**:
 
-兼容 [OpenCode](https://opencode.ai) / [OhMyOpenAgent](https://github.com/code-yeongyu/oh-my-openagent) / Claude Code 等支持 MCP + Skill 的平台。
+- **The Brain (Skill Layer):** Standard Operating Procedures (SOP) defining *when* to invoke tools and *what* constraints to follow.
+- **The Hand (MCP Layer):** A high-performance Rust runtime ([memguard-mcp](https://github.com/liuhengyuan666/memguard-mcp)) providing zero-error tool execution, atomic concurrency control, and lightning-fast search.
 
----
-
-## v3.0.0 核心升级：MCP + Skill 双层架构
-
-相比 v2.x 的「纯 Skill」模式，v3.0.0 进化为 **双层架构**：
-
-| 维度 | v2.x (纯 Skill) | v3.0.0 (MCP + Skill) |
-|------|----------------|---------------------|
-| **形态** | Agent 直接读写 Markdown 文件 | Skill 指导流程，MCP 工具执行操作 |
-| **并发安全** | ❌ 无（多 Agent 可能冲突） | ✅ Rust RwLock + Generation Counter |
-| **文件保护** | ❌ Agent 可能误写旧格式文件 | ✅ Parse guard 自动保护旧格式 |
-| **防抖写入** | ❌ 无 | ✅ 500ms 防抖，避免频繁 I/O |
-| **多项目隔离** | ❌ 手动目录切换 | ✅ 自动项目根检测 + MCP 握手修正 |
-| **记忆持久化** | Agent 自行负责 | MCP 自动管理（防抖 + Markdown 双向转换） |
-| **行为约束** | ✅ SKILL.md 全量 | ✅ SKILL.md 升级为 Agent SOP |
-
-### 架构对比
-
-```
-v2.x (纯 Skill):                    v3.0.0 (MCP + Skill):
-┌─────────────────────┐            ┌──────────────────────┐
-│ SKILL.md (494行)     │            │ SKILL.md (SOP)       │ ← 行为契约
-│ Agent 自己读写文件   │            │ "MUST call bootstrap"│
-│ 无并发/防抖保护      │            └──────┬───────────────┘
-└─────────────────────┘                   │ WHEN / INVOKES
-                                          ▼
-                           ┌──────────────────────┐
-                           │ memguard-mcp (Rust)  │ ← 能力层
-                           │ bootstrap / query    │
-                           │ commit / flush / lock│
-                           └──────────────────────┘
-```
+Compatible with [OpenCode](https://opencode.ai) / [OhMyOpenAgent](https://github.com/code-yeongyu/oh-my-openagent) / Claude Code and any platform supporting MCP + Skills.
 
 ---
 
-## 核心能力
+## ⚡ Why MemGuard? (The Pain Points We Kill)
 
-| 能力 | 说明 |
-|------|------|
-| 🧠 **Explore ↔ Execution 双模式** | 需求模糊时发散，需求明确时收敛，3 条显式切换条件 |
-| 📝 **结构化 Memory 系统** | context.md + decisions.md + traps.md，Git-native Markdown |
-| 🔒 **幻觉防御** | 4 层校验（Structure / Decision / Technology / Assumption） |
-| ✅ **ADR 决策不可逆** | Status 生命周期（Proposed → Accepted → Superseded），已拒绝方案不得重复提出 |
-| 🔄 **Memory 压缩** | 过时决策摘要化、废弃上下文归档 |
-| 🚫 **行为边界** | 禁止 Agent 自主操作 CI/CD、Git hosting、外部服务 |
-| 🛡️ **旧格式保护** | Parse guard 自动保护旧版 memory 文件不被覆盖 |
+| The Problem in Vanilla Agents | The MemGuard Way |
+| :--- | :--- |
+| **Context Drift & Hallucination** | **4-Layer Verification**: Forces verification against `structure`, `decisions`, `tech`, and `assumptions` before coding. |
+| **Decision Blindness** | **Immutable ADRs**: Prevents agents from entering loop discussions or re-proposing previously `rejected` paths. |
+| **State Overwrites (Concurrency)** | **Rust `RwLock` & Concurrency Guard**: Safely manages state when multiple agents/sub-agents write simultaneously. |
+| **Old Format Corruption** | **Parse Guard**: Detects legacy `memory/*.md` files and prevents empty-state overwrites, preserving content until explicit migration. |
 
 ---
 
-## 快速开始
+## 🏗️ Dual-Layer Architecture Overview
 
-### 方式一：项目级安装（推荐）
-
-```bash
-# 1. 安装 MCP 运行时
-npm install -g @henry_lhy/memguard-mcp
-
-# 2. 在你的项目目录安装 Skill
-mkdir -p .opencode/skills/memguard
-curl -o .opencode/skills/memguard/SKILL.md \
-  https://raw.githubusercontent.com/liuhengyuan666/memguard/main/memguard/SKILL.md
-
-# 3. 配置 opencode.json（见 opencode.json.example）
+```text
+       ┌────────────────────────────────────────────────────────┐
+       │                 AI Agent Session Loop                  │
+       └───────────────────────────┬────────────────────────────┘
+                                   │ Mentally Bound By
+                                   ▼
+       ┌────────────────────────────────────────────────────────┐
+       │         SKILL.md (Agent SOP / Behavioral Contract)      │
+       │   - Tracks Explore ↔ Execution Mode Transitions         │
+       │   - Enforces Guardrails & Out-of-Bounds Restrictions   │
+       └───────────────────────────┬────────────────────────────┘
+                                   │ Automatically Invokes
+                                   ▼
+       ┌────────────────────────────────────────────────────────┐
+       │          memguard-mcp (Rust-Powered Runtime)           │
+       │   - Atomic File I/O with 500ms Debounce                │
+       │   - In-Memory State Cache (.memguard/*.json)           │
+       │   - Thread-Safe RwLock Concurrency Protection          │
+       └────────────────────────────────────────────────────────┘
 ```
 
-### 方式二：远程 URL 自动加载
+---
 
-在你的 `opencode.json` 中添加：
+## 🚀 Quick Start
+
+### Method 1: Remote URL Auto-Load (Recommended)
+
+Add this to your project's `opencode.json`:
 
 ```json
 {
@@ -98,86 +75,145 @@ curl -o .opencode/skills/memguard/SKILL.md \
 }
 ```
 
-OpenCode 会自动下载并缓存 Skill，MCP server 随 OpenCode 启动。
+OpenCode will automatically download and cache the Skill. The MCP server starts with OpenCode.
 
-### 方式三：全局 Skill + 项目 MCP
+### Method 2: Project-Level Install
 
 ```bash
-# 全局安装 Skill（所有项目通用）
+# 1. Install the MCP runtime
+npm install -g @henry_lhy/memguard-mcp
+
+# 2. Install the Skill in your project
+mkdir -p .opencode/skills/memguard
+curl -o .opencode/skills/memguard/SKILL.md \
+  https://raw.githubusercontent.com/liuhengyuan666/memguard/main/memguard/SKILL.md
+
+# 3. See opencode.json.example for full configuration options
+```
+
+### Method 3: Global Skill + Per-Project MCP
+
+```bash
+# Install Skill globally (all projects)
 mkdir -p ~/.config/opencode/skills/memguard
 curl -o ~/.config/opencode/skills/memguard/SKILL.md \
   https://raw.githubusercontent.com/liuhengyuan666/memguard/main/memguard/SKILL.md
 
-# 每个项目只需在 opencode.json 注册 MCP：
+# Each project only needs the MCP entry in opencode.json:
 # { "mcp": { "memguard": { "type": "local", "command": ["npx", "-y", "@henry_lhy/memguard-mcp"] } } }
 ```
 
 ---
 
-## 使用流程
+## ❓ Troubleshooting
 
-### 新项目（Greenfield）
+### `Skill "memguard" not found` in another project
 
-1. 安装 MCP 运行时 + 配置 Skill
-2. 启动 Agent 会话
-3. Agent 自动调用 `memguard_runtime_bootstrap` → 检测无 `memory/` 目录 → 自动初始化
-4. 进入 **Explore 模式**，输出：问题框架 + 2-5 个候选方案 + 权衡 + 假设 + 验证策略
-5. 方案收敛后 → Agent 调用 `memguard_runtime_commit_event { AdrCommitted }` → 切换至 **Execution 模式**
-6. 编码实现，Memory 按 SOP 策略选择性更新
+This happens when the MCP server is installed but the Skill is not. The
+`memguard-mcp` package provides only the runtime tools — it does **not**
+include the Agent SOP.
 
-### 既有项目（Brownfield，从 v2 迁移）
+**Fix**: Ensure the Skill is installed in the target project's `opencode.json`:
 
-1. 安装 MCP 运行时 + 配置 Skill
-2. 首次调用 `memguard_runtime_bootstrap` → 自动解析旧格式 `context.md`
-3. 旧格式文件被 parse guard 保护不会被覆盖
-4. 通过 `memguard_runtime_commit_event` 逐步重建 ADR 和 Traps
-5. 详见 [MIGRATION.md](MIGRATION.md)
+```json
+{
+  "skills": {
+    "urls": [
+      "https://raw.githubusercontent.com/liuhengyuan666/memguard/main/"
+    ]
+  }
+}
+```
+
+You can also install the Skill globally (`~/.config/opencode/skills/memguard/`)
+or per-project (`.opencode/skills/memguard/`). See [Quick Start](#-quick-start)
+for all installation methods.
+
+### Agent produces `MCP error -32602` when calling `runtime_commit_event`
+
+This means the Agent is calling MCP tools without following the SOP. This
+happens when:
+
+1. The Skill is not installed → install it as above
+2. The Skill is installed but the Agent skipped `runtime_bootstrap` → restart the session
+
+With the Skill installed, the Agent automatically follows correct payload schemas:
+- `TaskUpdated`: requires `task_id` + `new_status` (not `status`)
+- `AdrCommitted`: requires all 6 fields including `context` and `decision`
+
+### Quick Verification
+
+After configuration, verify both layers are active:
+
+1. OpenCode should list `memguard` in its available tools
+2. Agent should call `memguard_runtime_bootstrap` at session start
+3. If neither happens, check `opencode.json` syntax and restart OpenCode
 
 ---
 
-## 仓库结构
+## 📂 Memory Layout (Source of Truth)
+
+MemGuard maintains a human-readable, Git-tracked `memory/` directory alongside a high-performance machine-readable cache:
 
 ```text
-memguard/                              # Skill 规范仓（本仓库）
-├── README.md                          # 本文件
-├── index.json                         # OpenCode skill 发现索引
-├── opencode.json.example              # MCP + Skill 双层配置示例
-├── MIGRATION.md                       # v2→v3 迁移指南
-├── memguard/                          # Skill 目录
-│   └── SKILL.md                       # ⭐ Agent SOP — 行为运行时协议
-└── templates/                         # Memory 文件模板（v2 遗留，v3 不依赖）
-
-memguard-mcp/                          # MCP 实现仓（独立仓库）
-├── README.md                          # MCP 运行时说明
-├── src/                               # Rust 源码
-├── architecture.md                    # 架构参考
-├── blueprint.md                       # 设计蓝图
-├── Cargo.toml                         # Rust 依赖
-└── build.ps1                          # 构建脚本
+[Your Project Root]
+├── memory/                  # 💡 Source of Truth (Human Readable, Git Committed)
+│   ├── context.md           # Active phase, goals, current tasks, and risks (Overwrite)
+│   ├── decisions.md         # Architecture Decision Records (ADR, Append-Only)
+│   └── traps.md             # The Anti-Pattern Book: Error signatures & root causes
+└── .memguard/               # ⚡ Runtime Cache (Machine Readable, Add to .gitignore)
+    ├── runtime_state.json   # Serialized state graph for concurrent validation
+    └── search_index.json    # Millisecond-level keyword index for instant retrieval
 ```
 
-### Memory 目录（Agent 自动管理）
-
-```text
-memory/                  # Source of Truth — 人类可读，随 Git 提交
-├── context.md           # 当前阶段、活跃任务、约束条件
-├── decisions.md         # ADR 格式架构决策（追加式）
-└── traps.md             # 踩坑记录：错误签名 + 上下文 + 解决方案
-
-.memguard/               # Runtime Cache — 机器可读，应被 .gitignore
-├── runtime_state.json   # 序列化状态快照
-└── search_index.json    # 轻量关键词索引
-```
+**The `traps.md` Evolution:** The dedicated trap file maps error traces directly to past architectural contexts, completely eliminating the loop where an agent repeatedly rediscovers the same bug across multiple sessions.
 
 ---
 
-## 设计哲学
+## 🛠️ Typical Agent Workflow
 
-continuity > statelessness · decisions > conversation history · active context > historical detail · structure > improvisation · controlled autonomy > unrestricted generation
+1. **Bootstrap**: Session starts → Agent runs `runtime_bootstrap` → Syncs Git Markdown state into Rust memory.
+2. **Explore Mode**: Requirements are ambiguous → Agent produces 2-5 technical options with trade-offs.
+3. **Commit & Freeze**: Decision made → Agent fires `runtime_commit_event { AdrCommitted }` → State transitions to Execution mode, freezing the architecture choice in `decisions.md`.
+4. **Guardrailed Execution**: Coding phase → Rust background engine validates operations, prevents old-format file corruption.
 
-## 许可
+---
+
+## 📂 Repository Structure
+
+```text
+memguard/                              # Skill Spec Repository (this repo)
+├── README.md                          # This file
+├── index.json                         # OpenCode skill discovery index
+├── opencode.json.example              # MCP + Skill dual-layer config example
+├── MIGRATION.md                       # v2 → v3 migration guide
+├── memguard/                          # Skill directory
+│   └── SKILL.md                       # ⭐ Agent SOP — behavioral runtime contract
+└── templates/                         # Memory file templates (v2 legacy, v3 independent)
+
+memguard-mcp/                          # MCP Implementation Repository (separate)
+├── README.md                          # MCP runtime documentation
+├── src/                               # Rust source code
+├── architecture.md                    # Architecture reference
+├── blueprint.md                       # Design blueprint
+├── Cargo.toml                         # Rust dependencies
+└── build.ps1                          # Build script
+```
+
+### Migration from v2
+
+See [MIGRATION.md](MIGRATION.md) for the step-by-step v2 → v3 migration guide, including old-format file handling and parse guard behavior.
+
+---
+
+## 🎯 Design Philosophy
+
+> continuity > statelessness · decisions > conversation history · active context > historical detail · structure > improvisation · controlled autonomy > unrestricted generation
+
+---
+
+## ⚖️ License
 
 The source code is licensed under MIT.
 
-However, the project name, logo, and branding are not permitted
-to be used for commercial distribution without explicit permission.
+However, the project name, logo, and branding are not permitted to be used for commercial distribution without explicit permission.
