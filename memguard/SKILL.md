@@ -98,6 +98,7 @@ re-propose a previously rejected approach without this explanation.
 | Event | event_type | payload | When |
 |-------|-----------|---------|------|
 | Architecture decision | `AdrCommitted` | `{ id, title, status, context, decision, tags }` | **After any technology selection, API design decision, architectural tradeoff, or fallback strategy.** Even if uncertain, commit as `Proposed`. If the project has `adr_count: 0`, every nontrivial design decision this session should produce an ADR. |
+| New task created | `TaskCreated` | `{ id, description }` | **After decomposing work into trackable tasks.** Tasks are always created as `Todo` regardless of any `status` provided in the payload — use `TaskUpdated` to transition afterward. Task IDs should follow `TASK-XXX` format (e.g., `TASK-001`). Duplicate IDs are rejected. |
 | Task status change | `TaskUpdated` | `{ task_id, new_status }` | Any transition: Todo→InProgress, InProgress→Done |
 | Bug or error with fix | `TrapRecorded` | `{ error_signature, context, solution }` | Non-trivial bugs where the fix is reusable knowledge |
 | Phase transition | `PhaseChanged` | `{ new_phase }` | Switching between Explore/Execution modes, or between planning/implementation/verification |
@@ -194,6 +195,7 @@ reusable information belongs in memory.
 | Phase/goal change | `PhaseChanged` |
 | Major architecture change | `AdrCommitted` |
 | Non-trivial bug fix with reusable solution | `TrapRecorded` |
+| New task created | `TaskCreated` |
 | Task status change | `TaskUpdated` |
 
 ### Forbidden Writes
@@ -236,6 +238,7 @@ Before ending any session, **MUST** verify ALL of the following.
 decisions without committing ADRs is incomplete:
 
 - [ ] **Were new architecture decisions made?** → `memguard_runtime_commit_event { AdrCommitted }` — this is the single most important persistence action
+- [ ] Were new tasks created? → `memguard_runtime_commit_event { TaskCreated }`
 - [ ] Did goals or phase change? → `memguard_runtime_commit_event { PhaseChanged }`
 - [ ] Were non-trivial errors encountered? → `memguard_runtime_commit_event { TrapRecorded }`
 - [ ] Did any tasks change status? → `memguard_runtime_commit_event { TaskUpdated }`
