@@ -310,3 +310,67 @@ The MCP server must be registered separately in `opencode.json`. See
 | `memguard_runtime_bootstrap` | Session start, context loss | `project_root` (optional) |
 | `memguard_runtime_query_memory` | Before decisions, coding, proposing | `query_intent` (required) |
 | `memguard_runtime_commit_event` | After decisions, task updates, traps, phase changes | `event_type` + `payload` (required) |
+
+---
+
+## ADR Lifecycle
+
+ADR statuses: Proposed → Accepted → Superseded/Archived.
+
+When changing an existing accepted decision:
+
+DO NOT create a parallel active ADR.
+
+Instead:
+1. Query existing ADR
+2. Create new ADR with updated decision
+3. Mark old ADR as Superseded
+
+Valid transitions:
+- Proposed → Accepted
+- Proposed → Rejected
+- Accepted → Superseded
+- Accepted → Archived
+- Rejected → Proposed (resubmission)
+- Superseded → * (terminal)
+- Archived → * (terminal)
+
+## Task Lifecycle
+
+Active tasks should only include Todo, InProgress, and Blocked statuses.
+
+When a task is Done:
+- It is automatically removed from active_tasks
+- It is archived to tasks_archive.md
+- Do NOT keep Done tasks in context.md
+
+Use Blocked status when:
+- A task is blocked by an external dependency
+- A task cannot proceed until another task completes
+
+## Trap Recording Rules
+
+Record a Trap (not an ADR) when:
+- You encountered an error that was unexpected
+- The error has a clear signature and solution
+- The error is likely to recur
+
+Trap structure:
+```markdown
+## Trap: {error_signature}
+
+### Context
+{when/where it happened}
+
+### Root Cause
+{why it happened}
+
+### Solution
+{how to fix it}
+
+### Prevention
+{how to avoid it in the future}
+```
+
+Required fields: error_signature, context, solution
+Recommended fields: root_cause, prevention
