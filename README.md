@@ -1,13 +1,13 @@
-# MemGuard v3 — Agent Memory & Runtime SOP
+# MemGuard v4 — Agent Memory & Runtime SOP
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/spec-3.0.0-green.svg)](https://github.com/liuhengyuan666/memguard)
+[![Version](https://img.shields.io/badge/spec-4.0.0-green.svg)](https://github.com/liuhengyuan666/memguard)
 [![MCP Support](https://img.shields.io/badge/MCP-Supported-orange.svg)](https://modelcontextprotocol.io)
 
 > **The Git-Native Memory Engine & Operating Spec for AI Agents.**
 > Stop your agents from hallucinating architecture, repeating resolved decisions, or corrupting project state.
 
-MemGuard v3 adopts a **decoupled dual-layer architecture**:
+MemGuard v4 adopts a **decoupled dual-layer architecture**:
 
 - **The Brain (Skill Layer):** Standard Operating Procedures (SOP) defining *when* to invoke tools and *what* constraints to follow.
 - **The Hand (MCP Layer):** A high-performance Rust runtime ([memguard-mcp](https://github.com/liuhengyuan666/memguard-mcp)) providing zero-error tool execution, atomic concurrency control, and lightning-fast search.
@@ -157,13 +157,22 @@ MemGuard maintains a human-readable, Git-tracked `memory/` directory alongside a
 
 ```text
 [Your Project Root]
-├── memory/                  # 💡 Source of Truth (Human Readable, Git Committed)
-│   ├── context.md           # Active phase, goals, current tasks, and risks (Overwrite)
-│   ├── decisions.md         # Architecture Decision Records (ADR, Append-Only)
-│   └── traps.md             # The Anti-Pattern Book: Error signatures & root causes
-└── .memguard/               # ⚡ Runtime Cache (Machine Readable, Add to .gitignore)
-    ├── runtime_state.json   # Serialized state graph for concurrent validation
-    └── search_index.json    # Millisecond-level keyword index for instant retrieval
+├── memory/                        # 💡 Source of Truth (Human Readable, Git Committed)
+│   ├── context.md                 # Active phase, goals, current tasks, and constraints
+│   ├── decisions.md               # Active ADRs (Accepted / Proposed)
+│   ├── traps.md                   # Error signatures, context, and solutions
+│   ├── tasks_archive.md           # Historical completed tasks (auto-generated)
+│   └── decisions_archive.md       # Historical stale ADRs (auto-generated)
+│
+└── .memguard/                     # ⚡ Runtime Cache (Machine Readable, Add to .gitignore)
+    ├── runtime_state.json         # Serialized state graph for concurrent validation
+    ├── search_index.json          # Inverted keyword index for instant retrieval
+    └── backups/                   # Manual cleanup snapshots (YYYYMMDD-HHMMSS/)
+        ├── context.md
+        ├── decisions.md
+        ├── runtime_state.json
+        ├── search_index.json
+        └── manifest.json
 ```
 
 **The `traps.md` Evolution:** The dedicated trap file maps error traces directly to past architectural contexts, completely eliminating the loop where an agent repeatedly rediscovers the same bug across multiple sessions.
@@ -186,10 +195,10 @@ memguard/                              # Skill Spec Repository (this repo)
 ├── README.md                          # This file
 ├── index.json                         # OpenCode skill discovery index
 ├── opencode.json.example              # MCP + Skill dual-layer config example
-├── MIGRATION.md                       # v2 → v3 migration guide
+├── MIGRATION.md                       # v3 → v4 migration guide
 ├── memguard/                          # Skill directory
 │   └── SKILL.md                       # ⭐ Agent SOP — behavioral runtime contract
-└── templates/                         # Memory file templates (v2 legacy, v3 independent)
+└── templates/                         # Memory file templates (v2 legacy, v4 independent)
 
 memguard-mcp/                          # MCP Implementation Repository (separate)
 ├── README.md                          # MCP runtime documentation
@@ -202,7 +211,7 @@ memguard-mcp/                          # MCP Implementation Repository (separate
 
 ### Migration from v2
 
-See [MIGRATION.md](MIGRATION.md) for the step-by-step v2 → v3 migration guide, including old-format file handling and parse guard behavior.
+See [MIGRATION.md](MIGRATION.md) for the step-by-step v3 → v4 migration guide, including backward compatibility notes and manual cleanup instructions.
 
 ---
 
