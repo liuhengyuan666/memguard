@@ -13,7 +13,7 @@ description: |
 license: MIT
 compatibility: opencode
 metadata:
-  version: 3.0.0
+  version: 4.0.0
   author: Lhy
   requires-mcp: ["memguard"]
   tags:
@@ -28,7 +28,7 @@ metadata:
     ]
 ---
 
-# MemGuard v3 — Agent SOP (Standard Operating Procedure)
+# MemGuard v4 — Agent SOP (Standard Operating Procedure)
 
 > **You have been equipped with the `memguard` MCP server (3 tools).
 > This SOP tells you exactly WHEN and HOW to use them.**
@@ -50,6 +50,29 @@ Agent **MUST**:
 - Preserve architectural continuity
 - Avoid contradicting established project structure
 
+### Knowledge Source Priority (Hard Rule)
+
+When reasoning, proposing solutions, or launching search agents, the following
+priority order is absolute. A lower-priority source **MUST NOT** override a
+higher-priority source without explicit user confirmation.
+
+```
+1. User instruction          (explicit override)
+2. Active ADRs               (Accepted / Proposed)
+3. Traps                     (recorded failures & solutions)
+4. Search results            (external docs, examples, libraries)
+5. Model internal knowledge  (training data, generic patterns)
+```
+
+**Consequences**:
+- If an active ADR says "use Tencent datasource", search results recommending
+  EastMoney **MUST NOT** override the ADR without user confirmation.
+- If a Trap records "do not use feature X because of bug Y", model knowledge
+  saying "feature X is standard" **MUST NOT** override the Trap.
+- Before launching any `explore` / `librarian` / `oracle` agent for a task that
+  touches architecture, ADRs, or previously modified modules, **MUST** first
+  call `memguard_runtime_query_memory()` to load relevant project memory.
+
 Explicit user instructions **MAY** override memory. When conflict exists:
 1. Surface the conflict explicitly
 2. Request confirmation if ambiguity exists
@@ -70,6 +93,17 @@ result is received. Read and acknowledge:
 - `adr_count` / `trap_count` — if `adr_count` is 0 and you are making nontrivial
   design decisions this session, the project needs its first ADRs
 - `active_tasks` — tasks being tracked (read last; decisions are more important)
+
+**MUST announce** the bootstrap summary in this exact format:
+```
+Memory context loaded:
+- Phase: {current_phase}
+- ADRs: {adr_count}
+- Traps: {trap_count}
+- Active Tasks: {active_tasks.length}
+```
+Do **NOT** omit `trap_count` even if it is zero. A project with zero traps is
+information — it means no reusable failure memory has been recorded yet.
 
 ---
 
