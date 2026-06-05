@@ -13,7 +13,7 @@ description: |
 license: MIT
 compatibility: opencode
 metadata:
-  version: 4.0.0
+  version: 4.1.0
   author: Lhy
   requires-mcp: ["memguard"]
   tags:
