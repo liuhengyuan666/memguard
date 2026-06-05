@@ -1,7 +1,7 @@
 # MemGuard v4 — Agent Memory & Runtime SOP
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/spec-4.1.0-green.svg)](https://github.com/liuhengyuan666/memguard)
+[![Version](https://img.shields.io/badge/spec-4.2.0-green.svg)](https://github.com/liuhengyuan666/memguard)
 [![MCP Support](https://img.shields.io/badge/MCP-Supported-orange.svg)](https://modelcontextprotocol.io)
 
 > **The Git-Native Memory Engine & Operating Spec for AI Agents.**
@@ -199,7 +199,13 @@ memguard/                              # Skill Spec Repository (this repo)
 ├── opencode.json.example              # MCP + Skill dual-layer config example
 ├── MIGRATION.md                       # v3 → v4 migration guide
 ├── memguard/                          # Skill directory
-│   └── SKILL.md                       # ⭐ Agent SOP — behavioral runtime contract
+│   └── SKILL.md                       # ⭐ Agent SOP Router — core behavioral contract (~1000 tokens)
+├── references/                        # 📚 Detailed rules loaded on demand
+│   ├── adr-lifecycle.md               # ADR state machine & transitions
+│   ├── task-lifecycle.md              # Task 6-status lifecycle & archive rules
+│   ├── trap-rules.md                  # Trap recording guidelines
+│   ├── archive-format.md              # Archive structure & cleanup
+│   └── task-lookup.md                 # Task lookup usage guide
 └── templates/                         # Memory file templates (v2 legacy, v4 independent)
 
 memguard-mcp/                          # MCP Implementation Repository (separate)
