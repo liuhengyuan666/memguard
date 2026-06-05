@@ -133,7 +133,7 @@ re-propose a previously rejected approach without this explanation.
 |-------|-----------|---------|------|
 | Architecture decision | `AdrCommitted` | `{ id, title, status, context, decision, tags }` | **After any technology selection, API design decision, architectural tradeoff, or fallback strategy.** Even if uncertain, commit as `Proposed`. If the project has `adr_count: 0`, every nontrivial design decision this session should produce an ADR. |
 | New task created | `TaskCreated` | `{ id, description }` | **After decomposing work into trackable tasks.** Tasks are always created as `Todo` regardless of any `status` provided in the payload — use `TaskUpdated` to transition afterward. Task IDs should follow `TASK-XXX` format (e.g., `TASK-001`). Duplicate IDs are rejected. |
-| Task status change | `TaskUpdated` | `{ task_id, new_status }` | Any transition: Todo→InProgress, InProgress→Done |
+| Task status change | `TaskUpdated` | `{ task_id, new_status, superseded_by? }` | Any transition among active states (Todo↔InProgress↔Blocked). Terminal transitions (→Done/Superseded/Cancelled) are one-way. `superseded_by` is **required** when `new_status` is `Superseded`. |
 | Bug or error with fix | `TrapRecorded` | `{ error_signature, context, solution }` | Non-trivial bugs where the fix is reusable knowledge |
 | Phase transition | `PhaseChanged` | `{ new_phase }` | Switching between Explore/Execution modes, or between planning/implementation/verification |
 
@@ -371,16 +371,96 @@ Valid transitions:
 
 ## Task Lifecycle
 
-Active tasks should only include Todo, InProgress, and Blocked statuses.
+```
+Todo
+  ↓
+InProgress
+  ↓
+Blocked
+  ↓
+Done        ──→ Archived to ## Completed
+Superseded  ──→ Archived to ## Superseded
+Cancelled   ──→ Archived to ## Cancelled
+```
 
-When a task is Done:
-- It is automatically removed from active_tasks
-- It is archived to tasks_archive.md
-- Do NOT keep Done tasks in context.md
+### Active States (appear in bootstrap `active_tasks`)
+- `Todo` — Not yet started
+- `InProgress` — Currently being worked on
+- `Blocked` — Blocked by external dependency or prerequisite task
 
-Use Blocked status when:
+### Terminal States (immutable, removed from `active_tasks`, archived)
+- `Done` — Task completed successfully
+- `Superseded` — Task abandoned because a better solution exists
+- `Cancelled` — Task abandoned with no replacement
+
+### Terminal State Rules
+
+**`Done`**:
+- Automatically archived to `tasks_archive.md` under `## Completed`
+- Do NOT keep Done tasks in `context.md`
+
+**`Superseded`** (MUST provide `superseded_by`):
+- Automatically archived to `tasks_archive.md` under `## Superseded`
+- **MUST** include `superseded_by` field with `reference` and `reason`
+- `reference.type`: `"Adr"` or `"Task"`
+- `reference.id`: the replacing ADR or Task ID
+- Example:
+  ```json
+  {
+    "task_id": "TASK-011",
+    "new_status": "Superseded",
+    "superseded_by": {
+      "reference": { "type": "Adr", "id": "ADR-053" },
+      "reason": "Ground Truth generation redesigned"
+    }
+  }
+  ```
+
+**`Cancelled`**:
+- Automatically archived to `tasks_archive.md` under `## Cancelled`
+- No `superseded_by` required
+- Use when a task is simply abandoned (e.g., user decides not to do it)
+
+### Critical Rule
+
+When an ADR replaces an existing implementation plan:
+- **Do NOT** mark old tasks as `Done`
+- **MUST** mark them as `Superseded` and reference the replacing ADR
+
+This preserves Decision Traceability — future Agents can follow the causal chain from the old task to the new ADR to the new tasks.
+
+### Archive Format
+
+```markdown
+# Tasks Archive
+
+## Completed
+### 2026-06-02
+- [Done] [TASK-001] Implemented login feature
+
+## Superseded
+### 2026-06-02
+- [Superseded] [TASK-011] Old approach A
+  Superseded by: ADR-053
+  Reason: Ground Truth generation redesigned
+
+## Cancelled
+### 2026-06-02
+- [Cancelled] [TASK-028] Electron Desktop Support
+```
+
+### Blocked Usage
+
+Use `Blocked` status when:
 - A task is blocked by an external dependency
 - A task cannot proceed until another task completes
+
+### State Transition Validation
+
+The following transitions are **forbidden**:
+- `Done` → any other status
+- `Superseded` → any other status
+- `Cancelled` → any other status
 
 ## Trap Recording Rules
 
