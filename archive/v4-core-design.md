@@ -2,8 +2,8 @@
 
 > **Status**: Active — current production architecture  
 > **Date**: 2025–2026  
-> **MCP Version**: v0.4.0  
-> **Skill Version**: v4.1.0  
+> **MCP Version**: v0.5.0  
+> **Skill Version**: v4.2.0  
 > **Purpose**: Document V4 architecture decisions for evolutionary review and V0.5.0+ planning
 
 ---
