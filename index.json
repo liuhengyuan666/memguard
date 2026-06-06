@@ -3,7 +3,14 @@
     {
       "name": "memguard",
       "description": "Structured memory management and behavioral runtime contract for AI agents. Provides long-term context continuity, ADR-based decision anchoring, hallucination reduction, memory compression, and controlled Explore → Execution workflows. Activates automatically when memory/ directory exists or when agent initializes project memory.",
-      "files": ["SKILL.md"]
+      "files": [
+        "SKILL.md",
+        "references/adr-lifecycle.md",
+        "references/task-lifecycle.md",
+        "references/trap-rules.md",
+        "references/archive-format.md",
+        "references/task-lookup.md"
+      ]
     }
   ]
 }
