@@ -221,6 +221,12 @@ A compliant session usually contains:
 If a session ends without items 2–4 being called where relevant, treat it as a
 sign that memory may be out of sync with the work performed.
 
+**Recommended action on anomalies**: If `bootstrap()` reveals duplicate task IDs,
+inconsistent statuses, or unexpected active tasks, you SHOULD call
+`query_memory()` to verify the inconsistency before proceeding. If the anomaly
+is unclear or might reflect an intentional user state, ask the user before
+diving deeper.
+
 ---
 
 ## 11. Integration
