@@ -9,7 +9,8 @@
         "references/task-lifecycle.md",
         "references/trap-rules.md",
         "references/archive-format.md",
-        "references/task-lookup.md"
+        "references/task-lookup.md",
+        "references/deployment.md"
       ]
     }
   ]

@@ -1,7 +1,7 @@
 # MemGuard v4 — Agent Memory & Runtime SOP
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/spec-4.2.1-green.svg)](https://github.com/liuhengyuan666/memguard)
+[![Version](https://img.shields.io/badge/spec-4.2.2-green.svg)](https://github.com/liuhengyuan666/memguard)
 [![MCP Support](https://img.shields.io/badge/MCP-Supported-orange.svg)](https://modelcontextprotocol.io)
 
 > **The Git-Native Memory Engine & Operating Spec for AI Agents.**

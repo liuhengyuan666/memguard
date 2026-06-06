@@ -13,7 +13,7 @@ description: |
 license: MIT
 compatibility: opencode
 metadata:
-  version: 4.2.1
+  version: 4.2.2
   author: Lhy
   requires-mcp: ["memguard"]
   tags:
@@ -47,6 +47,8 @@ metadata:
 ## 0. Activation
 
 If this document is visible in the current context, MemGuard is already active.
+**The activation decision has already been made. Do not re-evaluate whether
+MemGuard should be used.**
 
 **Do NOT call `skill("memguard")`.** Proceed directly with the
 Bootstrap → Query → Commit workflow below.
@@ -56,7 +58,25 @@ respectively. Both are already available.
 
 ---
 
-## 1. Knowledge Source Priority (Hard Rule)
+## 1. Quick Trigger Guide
+
+Match the user's intent to the minimum MemGuard workflow:
+
+| User asks about | Required action |
+| --------------- | --------------- |
+| Existing task or task status | `bootstrap()` + `task_lookup()` |
+| Architecture, design, or technology choice | `bootstrap()` + `query_memory()` |
+| Refactor or core module change | `bootstrap()` + `query_memory()` |
+| New feature or library introduction | `bootstrap()` + `query_memory()` |
+| Bug or error with a reusable fix | `bootstrap()` + `query_memory()` → `commit_event(TrapRecorded)` |
+| Status update on current phase | `bootstrap()` |
+| ADR discussion or decision reversal | `bootstrap()` + `query_memory()` |
+
+When in doubt, call `bootstrap()` first. It is cheap and idempotent.
+
+---
+
+## 2. Knowledge Source Priority (Hard Rule)
 
 ```
 1. User instruction          (explicit override)
@@ -73,7 +93,7 @@ architecture-related work, **MUST** first call `memguard_runtime_query_memory()`
 
 ---
 
-## 2. Session Start Protocol
+## 3. Session Start Protocol
 
 **MUST** call `memguard_runtime_bootstrap()` as the **very first action** in any
 session, after context loss, or on first interaction with a new project.
@@ -97,7 +117,7 @@ Memory context loaded:
 
 ---
 
-## 3. Pre-Decision / Pre-Coding Check
+## 4. Pre-Decision / Pre-Coding Check
 
 **MUST** call `memguard_runtime_query_memory(query_intent="...")` **before**:
 - Proposing a new architecture decision
@@ -110,7 +130,7 @@ If the query returns a superseded/rejected ADR relevant to your proposal:
 
 ---
 
-## 4. State Commit Triggers
+## 5. State Commit Triggers
 
 **MUST** call `memguard_runtime_commit_event` immediately when:
 
@@ -126,7 +146,7 @@ If the query returns a superseded/rejected ADR relevant to your proposal:
 
 ---
 
-## 5. Task Integrity (v0.5.0+)
+## 6. Task Integrity (v0.5.0+)
 
 Before creating or updating a task:
 
@@ -144,7 +164,7 @@ be modified.
 
 ---
 
-## 6. Write Policy
+## 7. Write Policy
 
 **MUST NOT** read or write `memory/*.md` files directly. All memory operations
 go through MCP tools.
@@ -162,7 +182,7 @@ automatically managed — do **NOT** read or edit it.
 
 ---
 
-## 7. Execution Order
+## 8. Execution Order
 
 ```
 1. memguard_runtime_bootstrap()           → load current state
@@ -178,7 +198,7 @@ automatically managed — do **NOT** read or edit it.
 
 ---
 
-## 8. References (Load On Demand)
+## 9. References (Load On Demand)
 
 | File | When to Load |
 |------|-------------|
@@ -187,10 +207,11 @@ automatically managed — do **NOT** read or edit it.
 | `references/trap-rules.md` | Recording a trap |
 | `references/archive-format.md` | Understanding archive structure or running cleanup |
 | `references/task-lookup.md` | Using `task_lookup` tool or interpreting lookup results |
+| `references/deployment.md` | Installing or registering MemGuard |
 
 ---
 
-## 9. Compliance
+## 10. Compliance
 
 The MemGuard workflow is part of the project architecture.
 
@@ -206,7 +227,7 @@ memory graph accurate so future sessions start from a reliable baseline.
 
 ---
 
-## 10. Success Criteria
+## 11. Success Criteria
 
 A compliant session usually contains:
 
@@ -229,21 +250,7 @@ diving deeper.
 
 ---
 
-## 11. Integration
+## 12. Integration
 
-Place this file in `.opencode/skills/memguard/` (per project) or
-`~/.config/opencode/skills/memguard/` (global). Alternatively, add the
-remote URL to your `opencode.json`:
-
-```json
-{
-  "skills": {
-    "urls": [
-      "https://raw.githubusercontent.com/liuhengyuan666/memguard/main/"
-    ]
-  }
-}
-```
-
-The MCP server must be registered separately in `opencode.json`. See
-`opencode.json.example` for a complete dual-layer configuration template.
+For installation and registration instructions, see
+`references/deployment.md`. Deployment details do not belong in the Router.
