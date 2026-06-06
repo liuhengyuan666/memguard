@@ -199,13 +199,13 @@ memguard/                              # Skill Spec Repository (this repo)
 ├── opencode.json.example              # MCP + Skill dual-layer config example
 ├── MIGRATION.md                       # v3 → v4 migration guide
 ├── memguard/                          # Skill directory
-│   └── SKILL.md                       # ⭐ Agent SOP Router — core behavioral contract (~1000 tokens)
-├── references/                        # 📚 Detailed rules loaded on demand
-│   ├── adr-lifecycle.md               # ADR state machine & transitions
-│   ├── task-lifecycle.md              # Task 6-status lifecycle & archive rules
-│   ├── trap-rules.md                  # Trap recording guidelines
-│   ├── archive-format.md              # Archive structure & cleanup
-│   └── task-lookup.md                 # Task lookup usage guide
+│   ├── SKILL.md                       # ⭐ Agent SOP Router — core behavioral contract (~1000 tokens)
+│   └── references/                    # 📚 Detailed rules loaded on demand
+│       ├── adr-lifecycle.md           # ADR state machine & transitions
+│       ├── task-lifecycle.md          # Task 6-status lifecycle & archive rules
+│       ├── trap-rules.md              # Trap recording guidelines
+│       ├── archive-format.md          # Archive structure & cleanup
+│       └── task-lookup.md             # Task lookup usage guide
 └── templates/                         # Memory file templates (v2 legacy, v4 independent)
 
 memguard-mcp/                          # MCP Implementation Repository (separate)
