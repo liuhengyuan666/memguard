@@ -13,7 +13,7 @@ description: |
 license: MIT
 compatibility: opencode
 metadata:
-  version: 4.2.0
+  version: 4.2.1
   author: Lhy
   requires-mcp: ["memguard"]
   tags:
@@ -41,6 +41,18 @@ metadata:
 >
 > **Design philosophy**: continuity > statelessness · decisions > conversation
 > history · active context > historical detail
+
+---
+
+## 0. Activation
+
+If this document is visible in the current context, MemGuard is already active.
+
+**Do NOT call `skill("memguard")`.** Proceed directly with the
+Bootstrap → Query → Commit workflow below.
+
+This SOP and the MCP tools are the instruction layer and the execution layer,
+respectively. Both are already available.
 
 ---
 
@@ -178,7 +190,40 @@ automatically managed — do **NOT** read or edit it.
 
 ---
 
-## 9. Integration
+## 9. Compliance
+
+The MemGuard workflow is part of the project architecture.
+
+When memory exists:
+
+- Bootstrap before planning.
+- Query before creating entities.
+- Commit after decisions.
+
+Skipping these steps may result in duplicate tasks, conflicting ADRs, or
+inconsistent project state. The goal is not rule-following — it is keeping the
+memory graph accurate so future sessions start from a reliable baseline.
+
+---
+
+## 10. Success Criteria
+
+A compliant session usually contains:
+
+1. `memguard_runtime_bootstrap()` — at session start.
+2. `memguard_runtime_query_memory(...)` — before architecture decisions or
+   revisiting prior discussions.
+3. `memguard_runtime_task_lookup({"task_id": "TASK-XXX"})` — when discussing
+   or changing a task.
+4. `memguard_runtime_commit_event(...)` — when ADRs, tasks, traps, or phase
+   state change.
+
+If a session ends without items 2–4 being called where relevant, treat it as a
+sign that memory may be out of sync with the work performed.
+
+---
+
+## 11. Integration
 
 Place this file in `.opencode/skills/memguard/` (per project) or
 `~/.config/opencode/skills/memguard/` (global). Alternatively, add the
