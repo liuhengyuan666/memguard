@@ -4,16 +4,15 @@ description: |
   **MEMORY MANAGEMENT SOP** — Structured project memory with ADR-based decisions,
   trap tracking, and controlled Explore↔Execution workflows. Activates when the
   user asks about project decisions, task status, memory, session context, or
-  mentions a previously discussed topic. WHEN: "remember this", "record this
-  decision", "what did we decide about", "check memory", "update task status",
-  "start new session", "bootstrap memory", "project memory", "what's the current
-  phase", "any open tasks". INVOKES: memguard_runtime_bootstrap (session start),
-  memguard_runtime_query_memory (before decisions/writing code), 
+  mentions a previously discussed topic. WHEN: Architectural memory, ADR tracking,
+  task lifecycle management, project state continuity, cross-session context
+  recovery. INVOKES: memguard_runtime_bootstrap (session start),
+  memguard_runtime_query_memory (before decisions/writing code),
   memguard_runtime_commit_event (after decisions/task updates).
 license: MIT
 compatibility: opencode
 metadata:
-  version: 4.2.2
+  version: 4.3.0
   author: Lhy
   requires-mcp: ["memguard"]
   tags:
@@ -104,7 +103,20 @@ result is received. Read and acknowledge:
 - `constraints` — architectural constraints that **MUST** be respected
 - `latest_adr` — the most recent architecture decision
 - `adr_count` / `trap_count` / `memory_health` — project maturity signals
+- `cache_status` — cache health signal (`Healthy`, `RebuildRequired`, `Corrupted`)
 - `active_tasks` — tasks being tracked (read last; decisions are more important)
+
+### Cache Status Handling
+
+If `cache_status` is present in the bootstrap response and is not `Healthy`:
+
+- `RebuildRequired` — cache is stale but recoverable. Avoid committing new
+  state changes until the cache is rebuilt (inform the user).
+- `Corrupted` — cache may be inconsistent. Treat memory as uncertain; do not
+  modify tasks or ADRs. Continue in read-only mode using session context and
+  inform the user that MemGuard needs repair.
+
+Do **NOT** read `memory/*.md` or `.memguard/*.json` directly to bypass the MCP.
 
 **MUST announce** the bootstrap summary in this exact format:
 ```
@@ -125,8 +137,19 @@ Memory context loaded:
 - Introducing a new library, framework, or external dependency
 - Revisiting a topic that was discussed in prior sessions
 
-If the query returns a superseded/rejected ADR relevant to your proposal:
-**MUST** explain the material difference before proceeding.
+### ADR Consultation Contract
+
+After calling `query_memory()` and before committing a new ADR:
+
+1. Review any relevant active, superseded, or rejected ADRs returned.
+2. In your rationale, explicitly explain whether the new proposal:
+   - **Follows** existing ADRs (no conflict)
+   - **Extends** existing ADRs (additive change)
+   - **Supersedes** an existing ADR (requires marking the old one as Superseded)
+3. If the query returns a `Rejected` ADR with content similar to your proposal,
+   explain the **material difference** that justifies revisiting it.
+
+A new `AdrCommitted` event without this relationship explanation is incomplete.
 
 ---
 
@@ -143,6 +166,13 @@ If the query returns a superseded/rejected ADR relevant to your proposal:
 | Phase transition | `PhaseChanged` | Switching between Explore/Execution modes |
 
 **Detailed payload schemas** → see `references/adr-lifecycle.md`, `references/task-lifecycle.md`, `references/trap-rules.md`.
+
+### Commit Receipt (SHOULD)
+
+After a successful `commit_event`, you SHOULD briefly acknowledge the commit
+in your response (e.g., `⪢ MemGuard: TaskUpdated TASK-018`). This improves
+observability during debugging but is not required in user-facing output if
+it would add noise.
 
 ---
 
@@ -198,20 +228,55 @@ automatically managed — do **NOT** read or edit it.
 
 ---
 
-## 9. References (Load On Demand)
+## 9. Exception Handling
 
-| File | When to Load |
-|------|-------------|
-| `references/adr-lifecycle.md` | Creating or transitioning an ADR |
-| `references/task-lifecycle.md` | Creating or transitioning a task |
-| `references/trap-rules.md` | Recording a trap |
-| `references/archive-format.md` | Understanding archive structure or running cleanup |
-| `references/task-lookup.md` | Using `task_lookup` tool or interpreting lookup results |
-| `references/deployment.md` | Installing or registering MemGuard |
+If any MemGuard MCP tool fails (timeout, error response, or unavailable):
+
+1. **Inform the user** that memory synchronization is temporarily unavailable.
+2. **Continue the task** using session context and any memory already loaded.
+3. **Treat memory state as potentially stale** — do not assume the absence of
+   an ADR or task means it does not exist.
+4. **Retry memory synchronization later** if appropriate (e.g., before the
+   next significant decision or at session end).
+
+Memory continuity is preferred. Task execution should not halt solely because
+MemGuard is unavailable.
 
 ---
 
-## 10. Compliance
+## 10. Reference Routing Rules
+
+Loading the correct reference before acting is not optional guidance — it is a
+rule. Use this decision tree:
+
+| If you are doing this... | Then you MUST load... |
+| ------------------------- | --------------------- |
+| Creating or transitioning an ADR | `references/adr-lifecycle.md` |
+| Creating or transitioning a task | `references/task-lifecycle.md` |
+| Using `task_lookup` or interpreting lookup results | `references/task-lookup.md` |
+| Recording a trap | `references/trap-rules.md` |
+| Installing or registering MemGuard | `references/deployment.md` |
+
+**SHOULD load** when reasoning about archived entities or running cleanup:
+`references/archive-format.md`.
+
+Failure to load the relevant reference before committing an event is a
+compliance violation.
+
+### Quick Reference Index
+
+| File | Contains |
+|------|----------|
+| `references/adr-lifecycle.md` | ADR state machine & transitions |
+| `references/task-lifecycle.md` | Task 6-status lifecycle |
+| `references/trap-rules.md` | Trap recording guidelines |
+| `references/archive-format.md` | Archive structure & cleanup |
+| `references/task-lookup.md` | Task lookup usage guide |
+| `references/deployment.md` | Installation & registration |
+
+---
+
+## 11. Compliance
 
 The MemGuard workflow is part of the project architecture.
 
@@ -227,7 +292,7 @@ memory graph accurate so future sessions start from a reliable baseline.
 
 ---
 
-## 11. Success Criteria
+## 12. Success Criteria
 
 A compliant session usually contains:
 
@@ -250,7 +315,7 @@ diving deeper.
 
 ---
 
-## 12. Integration
+## 13. Integration
 
 For installation and registration instructions, see
 `references/deployment.md`. Deployment details do not belong in the Router.

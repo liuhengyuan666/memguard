@@ -115,3 +115,16 @@ Task not found: TASK-011
 ```
 
 This error is ambiguous — it could mean the task never existed OR it was archived. `task_lookup` removes this ambiguity.
+
+---
+
+## Tool Failure
+
+If `task_lookup` fails (error response, timeout, or archive index unavailable):
+
+- **Do not assume the task does not exist.** The failure is about the lookup tool,
+  not the task's presence in memory.
+- **Ask the user** before creating a replacement task.
+- **Prefer `query_memory()`** before proceeding, if the tool is available.
+- If `query_memory()` is also unavailable, treat memory state as uncertain and
+  continue with session context only.

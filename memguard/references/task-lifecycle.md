@@ -25,14 +25,36 @@
 ## State Transitions
 
 ```
-Todo
+Todo ───────────────→ Cancelled
+  │                    (archived to ## Cancelled)
+  │
+  ├───────────────────→ Superseded
+  │                    (archived to ## Superseded)
   ↓
-InProgress ←→ Blocked
+InProgress ←────────── Blocked
+  │         Blocked → InProgress
+  │         Blocked → Cancelled
+  │         Blocked → Superseded
   ↓
 Done        ──→ Archived to ## Completed
 Superseded  ──→ Archived to ## Superseded
 Cancelled   ──→ Archived to ## Cancelled
 ```
+
+### Valid Transitions
+
+| From | To | Condition |
+|------|----|-----------|
+| `Todo` | `InProgress` | Work begins |
+| `Todo` | `Cancelled` | Task abandoned before start |
+| `Todo` | `Superseded` | Task replaced before start (requires `superseded_by`) |
+| `InProgress` | `Blocked` | External blocker or prerequisite unresolved |
+| `Blocked` | `InProgress` | Blocker resolved |
+| `Blocked` | `Cancelled` | Blocker permanent or no longer relevant |
+| `Blocked` | `Superseded` | Alternative approach adopted while blocked (requires `superseded_by`) |
+| `InProgress` | `Done` | Work completed |
+| `InProgress` | `Superseded` | Alternative approach adopted (requires `superseded_by`) |
+| `InProgress` | `Cancelled` | Work abandoned |
 
 **Forbidden transitions**:
 - `Done` → any other status
@@ -78,7 +100,19 @@ Use `memguard_runtime_commit_event` with:
 }
 ```
 
-**Note**: New tasks are always created as `Todo` regardless of any `status` provided.
+**All tasks are born as `Todo`**. The `TaskCreated` payload does not include a
+`status` field; the MCP always creates new tasks as `Todo` regardless of any
+status the caller may attempt to provide.
+
+### Starting Work Immediately
+
+If a task should be worked on right away, issue **two separate events**:
+
+1. `TaskCreated` — creates the task as `Todo`
+2. `TaskUpdated` — transitions it to `InProgress`
+
+Do not assume that creating a task with an intended status sets that status.
+Always transition explicitly.
 
 ## Committing a Status Change
 
