@@ -176,6 +176,34 @@ it would add noise.
 
 ---
 
+## 5.1 MCP Payload Cheat Sheet
+
+When constructing `commit_event` payloads, these fields are the most commonly
+missed. Copy the exact field names:
+
+| Event | Required fields in `payload` |
+|-------|------------------------------|
+| `TaskCreated` | `id` |
+| `TaskUpdated` | `task_id`, `new_status` |
+| `AdrCommitted` | `id`, `status` |
+| `TrapRecorded` | `error_signature`, `solution` |
+
+Do not guess field names. If you are unsure, load the corresponding reference.
+
+---
+
+## 5.2 Error Recovery Rule
+
+If `memguard_runtime_commit_event` returns a validation error (`-32602` or
+similar):
+
+1. **Do NOT guess the payload schema.**
+2. Load the corresponding reference file (see Section 10).
+3. Retry **exactly once** using the documented schema.
+4. If validation still fails, inform the user and stop retrying.
+
+---
+
 ## 6. Task Integrity (v0.5.0+)
 
 Before creating or updating a task:
@@ -209,6 +237,35 @@ go through MCP tools.
 
 `.memguard/*.json` is a runtime cache derived from `memory/*.md`. It is
 automatically managed — do **NOT** read or edit it.
+
+---
+
+## 7.1 Completion Checkpoint
+
+Before responding with work completion, phase completion, progress summary
+involving completed work, or task handoff:
+
+Silently verify:
+- [ ] Any task status changed → `commit_event(TaskUpdated)` if not done
+- [ ] Any new task created → `commit_event(TaskCreated)` if not done
+- [ ] Any architecture decision made → `commit_event(AdrCommitted)` if not done
+- [ ] Any non-trivial bug fixed → `commit_event(TrapRecorded)` if not done
+
+Do NOT conclude without these checks.
+
+---
+
+## 7.2 Bootstrap Shadow Summary
+
+After `bootstrap()`, maintain an internal shadow summary:
+
+- `current_phase`: ...
+- `constraints`: ...
+- `latest_adr`: ...
+- `active_task_count`: N
+
+If context compression occurs and the summary is unavailable, **MUST rerun
+`bootstrap()`**. It is cheap and idempotent.
 
 ---
 
