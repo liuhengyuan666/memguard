@@ -1,0 +1,26 @@
+{
+  "scenario": "Duplicate task ID in memory/context.md",
+  "description": "Simulates a state where two tasks share the same TASK-011 ID, causing bootstrap to detect an anomaly.",
+  "memory_context": {
+    "tasks": [
+      {
+        "id": "TASK-011",
+        "title": "Fix auth middleware",
+        "status": "InProgress",
+        "created_at": "2026-06-20T10:00:00Z"
+      },
+      {
+        "id": "TASK-011",
+        "title": "Refactor auth module",
+        "status": "Todo",
+        "created_at": "2026-06-21T08:00:00Z"
+      }
+    ]
+  },
+  "expected_bootstrap_response": {
+    "cache_status": "RebuildRequired",
+    "anomaly": "duplicate_task_id",
+    "duplicate_id": "TASK-011"
+  },
+  "agent_action": "Halt new commits, call query_memory(), ask user for resolution"
+}

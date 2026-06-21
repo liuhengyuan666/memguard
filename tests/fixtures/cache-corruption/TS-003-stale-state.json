@@ -1,0 +1,13 @@
+{
+  "scenario": "Stale bootstrap cache after manual memory edit",
+  "description": "Simulates a .memguard/runtime_state.json that is older than memory/context.md, causing bootstrap to return stale state.",
+  "memory_mtime": "2026-06-21T12:00:00Z",
+  "cache_mtime": "2026-06-20T10:00:00Z",
+  "expected_bootstrap_response": {
+    "cache_status": "RebuildRequired",
+    "reason": "memory_mtime > cache_mtime",
+    "current_phase": "Execution",
+    "active_tasks": 3
+  },
+  "agent_action": "Acknowledge RebuildRequired, avoid committing new state until cache is rebuilt, inform user"
+}

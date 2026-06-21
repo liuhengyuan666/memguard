@@ -1,0 +1,23 @@
+{
+  "scenario": "Invalid payload for TaskUpdated",
+  "description": "Simulates an agent sending 'status' instead of 'new_status' in a TaskUpdated commit_event.",
+  "invalid_payload": {
+    "event_type": "TaskUpdated",
+    "payload": {
+      "task_id": "TASK-003",
+      "status": "Done"
+    }
+  },
+  "error_response": {
+    "code": -32602,
+    "message": "Invalid params: missing required field 'new_status'"
+  },
+  "correct_payload": {
+    "event_type": "TaskUpdated",
+    "payload": {
+      "task_id": "TASK-003",
+      "new_status": "Done"
+    }
+  },
+  "agent_action": "Load diagnostics/payload-errors.md, retry exactly once with corrected payload"
+}

@@ -1,7 +1,7 @@
 # MemGuard v4 — Agent Memory & Runtime SOP
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/spec-4.3.0-green.svg)](https://github.com/liuhengyuan666/memguard)
+[![Version](https://img.shields.io/badge/spec-4.4.0-green.svg)](https://github.com/liuhengyuan666/memguard)
 [![MCP Support](https://img.shields.io/badge/MCP-Supported-orange.svg)](https://modelcontextprotocol.io)
 
 > **The Git-Native Memory Engine & Operating Spec for AI Agents.**
@@ -200,12 +200,29 @@ memguard/                              # Skill Spec Repository (this repo)
 ├── MIGRATION.md                       # v3 → v4 migration guide
 ├── memguard/                          # Skill directory
 │   ├── SKILL.md                       # ⭐ Agent SOP Router — core behavioral contract (~1000 tokens)
+│   ├── diagnostics/                   # 🩺 Diagnostic rules for runtime error recovery
+│   │   ├── payload-errors.md          # Common MCP -32602 errors and fixes
+│   │   ├── runtime-drift.md           # Duplicate IDs, stale cache, bootstrap mismatch
+│   │   └── recovery.md                # Degraded read-only mode, index rebuild
 │   └── references/                    # 📚 Detailed rules loaded on demand
 │       ├── adr-lifecycle.md           # ADR state machine & transitions
 │       ├── task-lifecycle.md          # Task 6-status lifecycle & archive rules
 │       ├── trap-rules.md              # Trap recording guidelines
 │       ├── archive-format.md          # Archive structure & cleanup
 │       └── task-lookup.md             # Task lookup usage guide
+├── docs/                              # 📖 Human-facing documentation
+│   ├── README.md                      # Docs navigation
+│   └── deployment.md                  # Installation & registration guide
+├── tests/                             # ✅ Validation test assets
+│   ├── TS-001-long-session.md         # Long session compression survival
+│   ├── TS-002-payload-recovery.md     # -32602 error recovery
+│   ├── TS-003-bootstrap-rerun.md      # Bootstrap rerun after context loss
+│   ├── TS-004-runtime-drift.md        # Duplicate task ID & stale cache
+│   ├── TS-005-blocked-transition.md   # Terminal task transition guard
+│   └── fixtures/                      # Reproducible test data
+│       ├── duplicate-task-id/
+│       ├── payload-error/
+│       └── cache-corruption/
 └── templates/                         # Memory file templates (v2 legacy, v4 independent)
 
 memguard-mcp/                          # MCP Implementation Repository (separate)

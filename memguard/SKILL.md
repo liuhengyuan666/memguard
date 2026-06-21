@@ -12,7 +12,7 @@ description: |
 license: MIT
 compatibility: opencode
 metadata:
-  version: 4.3.0
+  version: 4.4.0
   author: Lhy
   requires-mcp: ["memguard"]
   tags:
@@ -198,7 +198,10 @@ If `memguard_runtime_commit_event` returns a validation error (`-32602` or
 similar):
 
 1. **Do NOT guess the payload schema.**
-2. Load the corresponding reference file (see Section 10).
+2. Load the appropriate diagnostic file based on the error type:
+   - `-32602` or missing field errors → `diagnostics/payload-errors.md`
+   - Bootstrap inconsistency or stale state → `diagnostics/runtime-drift.md`
+   - Cache corruption or degraded mode → `diagnostics/recovery.md`
 3. Retry **exactly once** using the documented schema.
 4. If validation still fails, inform the user and stop retrying.
 
@@ -312,7 +315,10 @@ rule. Use this decision tree:
 | Creating or transitioning a task | `references/task-lifecycle.md` |
 | Using `task_lookup` or interpreting lookup results | `references/task-lookup.md` |
 | Recording a trap | `references/trap-rules.md` |
-| Installing or registering MemGuard | `references/deployment.md` |
+| Installing or registering MemGuard | `docs/deployment.md` |
+| Resolving a payload validation error (`-32602`) | `diagnostics/payload-errors.md` |
+| Diagnosing runtime state drift or inconsistency | `diagnostics/runtime-drift.md` |
+| Recovering from cache corruption or degraded mode | `diagnostics/recovery.md` |
 
 **SHOULD load** when reasoning about archived entities or running cleanup:
 `references/archive-format.md`.
@@ -329,7 +335,9 @@ compliance violation.
 | `references/trap-rules.md` | Trap recording guidelines |
 | `references/archive-format.md` | Archive structure & cleanup |
 | `references/task-lookup.md` | Task lookup usage guide |
-| `references/deployment.md` | Installation & registration |
+| `diagnostics/payload-errors.md` | Common payload validation errors & fixes |
+| `diagnostics/runtime-drift.md` | Runtime state drift patterns & detection |
+| `diagnostics/recovery.md` | Recovery procedures for degraded modes |
 
 ---
 
@@ -374,5 +382,4 @@ diving deeper.
 
 ## 13. Integration
 
-For installation and registration instructions, see
-`references/deployment.md`. Deployment details do not belong in the Router.
+For installation and registration instructions, see `docs/deployment.md`.

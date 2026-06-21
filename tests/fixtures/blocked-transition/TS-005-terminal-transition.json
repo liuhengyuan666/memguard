@@ -1,0 +1,20 @@
+{
+  "scenario": "Illegal transition from Done to InProgress",
+  "description": "Simulates an attempt to reopen a terminal task, which violates the task lifecycle rules.",
+  "task": {
+    "id": "TASK-020",
+    "status": "Done",
+    "terminal": true
+  },
+  "invalid_transition": {
+    "event_type": "TaskUpdated",
+    "payload": {
+      "task_id": "TASK-020",
+      "new_status": "InProgress"
+    }
+  },
+  "expected_mcp_response": {
+    "error": "Invalid transition: TASK-020 is in terminal state 'Done'. Cannot transition to 'InProgress'."
+  },
+  "agent_action": "Load references/task-lifecycle.md, confirm terminal rule, create new TASK-021 instead"
+}

@@ -1,0 +1,5 @@
+# MemGuard Runtime Cache (derived from memory/*.md)
+.memguard/
+
+# OpenCode workspace files
+.omo/
