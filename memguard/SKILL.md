@@ -12,7 +12,7 @@ description: |
 license: MIT
 compatibility: opencode
 metadata:
-  version: 4.4.0
+  version: 4.5.0
   author: Lhy
   requires-mcp: ["memguard"]
   tags:
@@ -192,7 +192,84 @@ Do not guess field names. If you are unsure, load the corresponding reference.
 
 ---
 
-## 5.2 Error Recovery Rule
+## 5.2 Capability Boundaries
+
+When uncertain about any operation:
+
+1. Check Capability Boundaries
+2. Check Operation Routing
+3. Check Payload Cheat Sheet
+
+Never skip this order.
+
+You MAY:
+
+- Create/update Tasks
+- Create ADRs
+- Record Traps
+- Change Phase
+
+You MAY query:
+
+- Tasks
+- ADRs
+- Traps
+- Constraints
+- Phase
+
+Everything else is UNSUPPORTED.
+
+The existence of a memory file does NOT imply it is writable through MCP.
+
+If an operation is not explicitly listed:
+
+1. Assume unsupported
+2. Do NOT search for alternative event types
+3. Do NOT infer hidden MCP capabilities
+4. Explain the limitation
+5. Suggest the nearest supported workflow
+
+---
+
+## 5.3 Operation Routing
+
+Need current project state?
+→ bootstrap()
+
+Need to verify a task exists?
+→ task_lookup()
+
+Need ADR history or past decisions?
+→ query_memory()
+
+Need to create/update memory?
+→ commit_event()
+
+Never infer state from prior context when a query tool exists.
+
+---
+
+## 5.4 Unsupported Requests
+
+Update constraints
+→ unsupported via MCP
+→ ask user to edit memory/context.md manually
+
+Delete ADR
+→ unsupported via MCP
+→ create ADR-Rejected
+
+Rename task ID
+→ unsupported via MCP
+→ create a new task and archive the old one
+
+Fix runtime drift
+→ unsupported via MCP
+→ create a maintenance task
+
+---
+
+## 5.5 Error Recovery Rule
 
 If `memguard_runtime_commit_event` returns a validation error (`-32602` or
 similar):
