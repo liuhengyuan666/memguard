@@ -1,7 +1,7 @@
 # MemGuard v4 — Agent Memory & Runtime SOP
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/spec-4.4.0-green.svg)](https://github.com/liuhengyuan666/memguard)
+[![Version](https://img.shields.io/badge/spec-4.5.0-green.svg)](https://github.com/liuhengyuan666/memguard)
 [![MCP Support](https://img.shields.io/badge/MCP-Supported-orange.svg)](https://modelcontextprotocol.io)
 
 > **The Git-Native Memory Engine & Operating Spec for AI Agents.**
@@ -25,7 +25,7 @@ Compatible with [OpenCode](https://opencode.ai) / [OhMyOpenAgent](https://github
 | **State Overwrites (Concurrency)** | **Rust `RwLock` & Concurrency Guard**: Safely manages state when multiple agents/sub-agents write simultaneously. |
 | **Old Format Corruption** | **Parse Guard**: Detects legacy `memory/*.md` files and prevents empty-state overwrites, preserving content until explicit migration. |
 | **Task Chaos** | **Task Lifecycle (v4.1)**: 6 statuses (Todo→InProgress→Blocked→Done/Superseded/Cancelled) with terminal auto-archive and `superseded_by` causal chains. |
-| **Memory Rot** | **Archive Governance**: Stale ADRs and completed tasks auto-migrate to dated archive sections with global deduplication. |
+| **Capability Discovery Waste** | **Agent Capability Model (v4.5)**: Eliminates 20-40 second reasoning loops about non-existent MCP features via explicit Capability Boundaries, Operation Routing, and Unsupported Request Playbook. |
 
 ---
 
@@ -219,6 +219,7 @@ memguard/                              # Skill Spec Repository (this repo)
 │   ├── TS-003-bootstrap-rerun.md      # Bootstrap rerun after context loss
 │   ├── TS-004-runtime-drift.md        # Duplicate task ID & stale cache
 │   ├── TS-005-blocked-transition.md   # Terminal task transition guard
+│   └── TS-006-capability-pressure.md  # Agent capability model under long-session compression
 │   └── fixtures/                      # Reproducible test data
 │       ├── duplicate-task-id/
 │       ├── payload-error/
